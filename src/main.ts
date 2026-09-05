@@ -2,6 +2,7 @@ import './style.css';
 import './satellites.css';
 import './map.css';
 import './orbits.css';
+import './mobile.css';
 import { placeLocalTime } from './place-time';
 import { LUNAR_CONTEXT_MAGNIFICATION } from './orbit-layout';
 import { orbitalReadout, nextOrbitEvents, type OrbitEvent } from './orbit-info';
@@ -199,7 +200,6 @@ let satelliteInspectorOpen = true;
 let orbitEventCache: { body: BodyId; start: number; events: OrbitEvent[] } | undefined;
 let earthOrbitFilter: OrbitFilter = 'all', satellitePage = 0;
 let satelliteListItems: Satellite[] = [], satellitePageItems: Satellite[] = [];
-const satellitePageSize = 50;
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 let placeCatalog: PlaceCatalog | undefined;
 let mapOpen = true, placesError = '', mapListKey = '';
@@ -565,6 +565,7 @@ function selectSatellite(id: string) {
   observatory?.selectSatellite(id);
   renderSatelliteSelection();
   updateSatelliteReadout(clock.now());
+  if (matchMedia('(max-width: 760px)').matches) $('#satellite-inspector').scrollIntoView({ block: 'start' });
 }
 function updateSatelliteModel(selected: Satellite | undefined) {
   const section=$('#satellite-model-section'), asset=selected&&satelliteModels.get(selected.id);
@@ -597,7 +598,7 @@ $('#close-satellite-inspector').onclick = () => {
   modelPreview?.setActive(false);
   $<HTMLDialogElement>('#satellite-model-dialog').close();
   const selectedRow = document.querySelector<HTMLElement>('.satellite-row.active');
-  (selectedRow ?? $('#nav-satellites')).focus({ preventScroll: true });
+  (selectedRow ?? $('#nav-satellites')).focus({ preventScroll: !matchMedia('(max-width: 760px)').matches });
 };
 $('#expand-satellite-model').onclick=()=> {
   $('#model-dialog-title').textContent=$('#satellite-selected-name').textContent;
@@ -623,6 +624,7 @@ function renderSatelliteSelection() {
   })() : '';
 }
 function renderSatelliteList() {
+  const satellitePageSize = matchMedia('(max-width: 760px)').matches ? 12 : 50;
   const items = satelliteCatalog?.satellites.filter(s => s.parent === currentBody) ?? [];
   const query = currentBody === 'earth' ? $<HTMLInputElement>('#satellite-search').value.trim().toLowerCase() : '';
   satelliteListItems = items.filter(s => currentBody !== 'earth' || (matchesOrbit(s, earthOrbitFilter) && matchesSatelliteSearch(s, query)));

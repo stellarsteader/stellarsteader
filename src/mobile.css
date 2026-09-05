@@ -1,0 +1,85 @@
+/* Phone layouts reserve a scene area; catalogs then flow with the document. */
+@media (max-width: 760px) {
+  .observatory {
+    --mobile-scene-height: clamp(260px, 42svh, 380px);
+    --mobile-scene-top: 232px;
+    height: auto;
+    min-height: 100svh;
+  }
+  .observatory[data-view=satellites], .observatory[data-view=orbit] { min-height: 100svh; }
+  .masthead { height: 108px; margin: 0 16px; padding: 0; display: grid; grid-template-columns: 1fr auto; grid-template-rows: 60px 48px; }
+  .brand { font-size: 11px; gap: 9px; justify-self: start; }
+  .brand-symbol svg { width: 32px; height: 32px; }
+  .header-actions { grid-column: 2; grid-row: 1; gap: 0; }
+  .header-actions .icon-button, .presentation-controls .icon-button { width: 44px; height: 44px; }
+  .main-nav { grid-column: 1 / -1; grid-row: 2; position: static; transform: none; margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; width: 100%; }
+  .nav-button { font-size: 12px; min-height: 44px; }
+  main { position: relative; inset: auto; padding: 16px; }
+  .scene, .place-labels, .satellite-labels, .orbit-labels {
+    top: var(--mobile-scene-top); bottom: auto; height: var(--mobile-scene-height); overflow: hidden;
+  }
+  .screen-vignette { display: none; }
+  .overview-heading, .detail-heading, .orbit-heading { position: relative; inset: auto; width: 100%; height: auto; margin: 0; }
+  .overview-heading { min-height: 108px; }
+  .overview-heading h1 { font-size: clamp(21px, 5.5vw, 28px); max-width: 100%; line-height: 1.3; }
+  .world-picker { position: relative; inset: auto; margin-top: calc(var(--mobile-scene-height) + 16px); gap: 12px; }
+  .world-name-row { margin: 12px 0; }
+  .world-name-row h2 { font-size: 27px; }
+  .world-card { min-height: 60px; }
+  .detail-heading .back-button { min-height: 44px; margin: 0 0 8px; }
+  .detail-heading h1 { font-size: 44px; line-height: 56px; }
+  .map-toggle { top: 76px; right: 16px; height: 44px; font-size: 12px; }
+  .detail-facts { position: relative; inset: auto; margin: calc(var(--mobile-scene-height) + 20px) 0 24px; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .detail-facts span { font-size: 8px; line-height: 1.5; }
+  .detail-facts strong { font-size: 13px; }
+  .detail-actions { position: relative; inset: auto; width: 100%; margin-bottom: 16px; }
+  .detail-actions button, .detail-actions .satellite-entry { min-height: 44px; font-size: 11px; }
+  [data-view=detail][data-map-open=true] .detail-facts,
+  [data-view=detail][data-map-open=true] .detail-actions { display: none; }
+  .map-panel { position: relative; inset: auto; width: 100%; margin-top: calc(var(--mobile-scene-height) + 16px); overflow: visible; --map-panel-padding: 16px; z-index: 3; }
+  .map-list-panel, .place-detail { border: 1px solid var(--line); }
+  .map-search input, .satellite-search input { font-size: 16px; min-height: 44px; }
+  .place-row { min-height: 56px; font-size: 14px; }
+  .place-row small { font-size: 12px; line-height: 1.4; }
+  .place-label { font-size: 11px; padding: 8px; }
+  .detail-switcher { position: relative; inset: auto; transform: none; justify-content: flex-start; gap: 20px; }
+  .detail-switcher button { min-height: 44px; font-size: 12px; }
+  [data-view=detail][data-map-open=true] .detail-switcher { display: none; }
+  [data-view=detail] .dawn-button { position: relative; inset: auto; margin: 12px 0; min-height: 44px; width: fit-content; }
+  [data-view=detail][data-map-open=true] .dawn-button { display: none; }
+  .satellite-panel { position: relative; inset: auto; width: 100%; height: auto; overflow: visible; padding: 0; }
+  .satellite-panel > .text-button { min-height: 44px; margin: 0 0 16px; }
+  .satellite-worlds { height: 48px; margin-bottom: calc(var(--mobile-scene-height) + 16px); }
+  .satellite-worlds button { flex: 1; font-size: 13px; min-height: 44px; }
+  #earth-catalog-controls { padding: 16px; border: 1px solid var(--line); }
+  .satellite-total { margin: 0 0 8px; }
+  .satellite-total strong { font-size: 32px; }
+  .satellite-total span, .catalog-stamp { font-size: 12px; white-space: normal; }
+  .orbit-filters { gap: 8px; }
+  .orbit-filters button { min-height: 44px; padding: 8px; }
+  .satellite-list { margin-top: 16px; }
+  .satellite-row { min-height: 60px; padding: 12px; font-size: 14px; }
+  .satellite-row small { font-size: 12px; }
+  .satellite-pagination { font-size: 12px; gap: 12px; margin: 16px 0; }
+  .satellite-pagination button { min-width: 44px; min-height: 44px; }
+  .satellite-inspector { position: relative; inset: auto; width: 100%; margin: 20px 0 0; overflow: visible; }
+  #close-satellite-inspector { width: 44px; height: 44px; }
+  .orbit-heading { height: 108px; }
+  .orbit-heading h1 { font-size: 28px; }
+  .orbit-pills { margin-top: 12px; }
+  .orbit-pills button { min-height: 44px; font-size: 13px; }
+  .orbit-info { position: relative; inset: auto; width: 100%; margin-top: calc(var(--mobile-scene-height) + 16px); overflow: visible; }
+  .orbit-caption { display: none; }
+  [data-view=detail] .view-tools, [data-view=satellites] .view-tools, [data-view=orbit] .view-tools {
+    top: calc(108px + var(--mobile-scene-height) - 48px); bottom: auto; left: auto; right: 16px; flex-direction: row;
+  }
+  .view-tools .icon-button { width: 44px; height: 44px; }
+  [data-view=detail] .view-tools > span, [data-view=satellites] .view-tools > span { width: 1px; height: 24px; margin: 10px 4px; }
+  .instrument-bar { position: relative; inset: auto; margin: 0 16px; padding: 12px 0 max(12px, env(safe-area-inset-bottom)); height: auto; min-height: 92px; gap: 4px; }
+  .instrument-right { width: auto; }
+  .instrument-right .text-button { min-height: 44px; font-size: 11px; }
+  .time-controls { font-size: 10px; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .time-controls .small, .time-controls select { min-width: 44px; height: 44px; }
+  .loading-overlay, .error-overlay { inset: 108px 0 0; min-height: 420px; }
+  .model-dialog { width: calc(100vw - 24px); max-width: none; padding: 16px; }
+}

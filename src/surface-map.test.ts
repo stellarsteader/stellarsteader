@@ -28,6 +28,16 @@ test('Surface label visibility excludes the far side and close-range hidden hori
   assert.deepEqual(map.update(surface, camera, 1440, 900, 3389.5).labels.filter(l => l.visible).map(l => l.place.id), ['nearby']);
 });
 
+test('Phone scene labels remain visible in the compact globe viewport', () => {
+  const surface = new Object3D(); surface.updateMatrixWorld(true);
+  for (const [width, height] of [[390, 354], [320, 260]]) {
+    const camera = new PerspectiveCamera(35, width / height, 0.01, 1000);
+    camera.position.set(0, 0, 5); camera.lookAt(0, 0, 0); camera.updateMatrixWorld(true);
+    const map = new SurfaceMap(); map.setPlaces([place('front', -90), place('back', 90)]);
+    assert.deepEqual(map.update(surface, camera, width, height, 3389.5).labels.filter(l => l.visible).map(l => l.place.id), ['front']);
+  }
+});
+
 test('Priority placement suppresses overlapping names at the same location', () => {
   const surface = new Object3D(); surface.updateMatrixWorld(true);
   const camera = new PerspectiveCamera(35, 1.6, 0.01, 1000);

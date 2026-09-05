@@ -235,7 +235,7 @@ export class Observatory {
   }
 
   private layout() {
-    const mobile = this.host.clientWidth < 760;
+    const mobile = this.host.clientWidth <= 760;
     const positions = mobile
       ? { earth: [-1.8, 1.5, 0], moon: [2.0, 1.3, -0.5], mars: [0.4, -2.1, 0] }
       : { earth: [-4.8, 0.1, 0], moon: [0, 0.35, -0.55], mars: [4.5, -0.1, -0.25] };
@@ -252,7 +252,7 @@ export class Observatory {
 
   resize() {
     const width = this.host.clientWidth, height = this.host.clientHeight;
-    this.autoPixelRatio = Math.min(devicePixelRatio, width < 760 ? 1.3 : 1.5);
+    this.autoPixelRatio = Math.min(devicePixelRatio, width <= 760 ? 1.3 : 1.5);
     this.renderer.setPixelRatio(this.quality === 'ultra' ? Math.min(devicePixelRatio, 2) : this.quality === 'high' ? Math.min(devicePixelRatio, 1.6) : this.autoPixelRatio);
     this.renderer.setSize(width, height);
     this.camera.aspect = width / height;
@@ -273,11 +273,11 @@ export class Observatory {
     this.planets.forEach((p, id) => { p.root.visible = view === 'overview' || id === selected; });
     let target = new THREE.Vector3();
     let destination = new THREE.Vector3();
-    const mobile = this.host.clientWidth < 760;
+    const mobile = this.host.clientWidth <= 760;
     this.satellites.root.visible = view === 'satellites';
     if (view === 'overview') {
       this.controls.minDistance = 0.1; this.controls.maxDistance = 100;
-      const distance = mobile ? 23.5 / Math.min(1, this.camera.aspect * 1.65) : Math.max(16.5, 8.2 / this.camera.aspect / Math.tan(THREE.MathUtils.degToRad(17.5)));
+      const distance = mobile ? 17.5 / Math.min(1, this.camera.aspect * 1.65) : Math.max(16.5, 8.2 / this.camera.aspect / Math.tan(THREE.MathUtils.degToRad(17.5)));
       destination.set(0, 0.7, distance);
       target.set(0, 0.35, 0);
     } else if (view === 'detail') {
@@ -295,9 +295,8 @@ export class Observatory {
       target.copy(planet.root.position);
       const extent = this.satellites.extent(this.clock.now(), filteredSatellites) * planet.size;
       const desktopFit = Math.max(4.2, this.host.clientHeight / Math.max(260, this.host.clientWidth * .916 - 640) / Math.tan(THREE.MathUtils.degToRad(17.5)));
-      destination.copy(target).add(new THREE.Vector3(0.15, 0.65, 1).normalize().multiplyScalar(extent * (mobile ? Math.max(10.5, 4 / this.camera.aspect) : desktopFit)));
+      destination.copy(target).add(new THREE.Vector3(0.15, 0.65, 1).normalize().multiplyScalar(extent * (mobile ? Math.max(4.2, 4 / this.camera.aspect) : desktopFit)));
       this.camera.far = Math.max(1000, destination.distanceTo(target) + extent * 3);
-      if (mobile) this.camera.setViewOffset(this.host.clientWidth, this.host.clientHeight, 0, this.host.clientHeight * 0.19, this.host.clientWidth, this.host.clientHeight);
       if (!mobile) this.camera.setViewOffset(this.host.clientWidth, this.host.clientHeight, -this.host.clientWidth * 0.03, 0, this.host.clientWidth, this.host.clientHeight);
       this.controls.minDistance = planet.size * 1.65; this.controls.maxDistance = Math.max(100, extent * 10);
     } else {
@@ -305,7 +304,6 @@ export class Observatory {
       const orbitDistance = Math.max(23, this.host.clientHeight * orbitExtent / Math.max(360, this.host.clientWidth * .916 - 360) / Math.tan(THREE.MathUtils.degToRad(17.5)));
       destination.copy(new THREE.Vector3(0, .53, .85).normalize().multiplyScalar(mobile ? 25 : orbitDistance));
       if (!mobile) this.camera.setViewOffset(this.host.clientWidth, this.host.clientHeight, this.host.clientWidth * .12, 0, this.host.clientWidth, this.host.clientHeight);
-      else this.camera.setViewOffset(this.host.clientWidth, this.host.clientHeight, 0, this.host.clientHeight * .22, this.host.clientWidth, this.host.clientHeight);
       this.controls.minDistance = 3; this.controls.maxDistance = Math.max(45, destination.length() * 1.5);
       this.setupOrbit();
     }

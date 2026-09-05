@@ -20,7 +20,7 @@ export function mapLevel(altitudeInRadii: number) {
   return altitudeInRadii > 2.8 ? 0 : altitudeInRadii > 1.2 ? 1 : altitudeInRadii > 0.45 ? 2 : 3;
 }
 export function detailDistanceRatio(width: number, height: number) {
-  if (width < 760) return 4.6 / (width / height);
+  if (width <= 760) return Math.max(3.6, 4.6 / (width / height));
   const side = Math.min(310, Math.max(260, width * 0.22)) + 40;
   const diameter = Math.max(220, Math.min(height * 0.68, (width - 2 * side) * 0.95));
   return Math.sqrt(1 + (height / (diameter * Math.tan(17.5 * Math.PI / 180))) ** 2);
@@ -50,11 +50,11 @@ export class SurfaceMap {
     const altitudeRatio = Math.max(0, this.localCamera.length() - 1);
     const level = mapLevel(altitudeRatio);
     this.matrix.copy(camera.projectionMatrix).multiply(camera.matrixWorldInverse).multiply(surface.matrixWorld);
-    const mobile = width < 760;
+    const mobile = width <= 760;
     const left = mobile ? 15 : width * 0.042 + Math.min(240, width * 0.18) + 20;
     const right = mobile ? width - 15 : width - width * 0.042 - Math.min(310, Math.max(260, width * 0.22)) - 16;
-    const top = mobile ? 215 : height <= 800 ? 125 : 140;
-    const bottom = mobile ? height * 0.55 : height - 145;
+    const top = mobile ? 16 : height <= 800 ? 125 : 140;
+    const bottom = mobile ? height - 60 : height - 145;
     const project = (entry: { place: Place; point: Vector3 }) => {
       const p = entry.point.clone().multiplyScalar(1.002).applyMatrix4(this.matrix);
       const x = (p.x + 1) * width / 2, y = (1 - p.y) * height / 2;

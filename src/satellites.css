@@ -1,0 +1,125 @@
+/* One scroll owner per column: the outer catalog panel and the separate inspector. */
+.satellite-entry { margin-top: 14px; gap: 20px; }
+.satellite-panel { position: absolute; top: 12px; bottom: 22px; left: 4.2%; width: 310px; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: #60716a transparent; overscroll-behavior: contain; padding-right: 8px; pointer-events: auto; }
+.satellite-panel > * { flex-shrink: 0; }
+.satellite-panel > .text-button { align-self: flex-start; margin-bottom: 18px; font-size: 12px; }
+.satellite-worlds { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.satellite-worlds button { padding: 10px 16px; font-size: 13px; color: #8d9b9f; }
+.satellite-worlds button[aria-pressed=true] { color: var(--accent); border-bottom: 2px solid var(--accent); }
+.satellite-list { display: flex; flex-direction: column; gap: 3px; flex: none; min-height: 0; max-height: none; overflow: visible; margin-top: 12px; }
+.satellite-list > * { flex-shrink: 0; }
+.satellite-list > p { font-size: 13px; line-height: 1.6; color: #a3b1b3; }
+.satellite-row { display: flex; align-items: center; gap: 12px; padding: 12px 10px; width: 100%; text-align: left; border: 1px solid transparent; border-radius:0; font-size: 13px; line-height: 1.4; }
+.satellite-row:hover { background: #ffffff0a; }
+.satellite-row.active { border-color: #ffffff4b; background: #ffffff11; }
+.satellite-row i { width: 6px; height: 6px; flex-shrink: 0; background: var(--satellite-color); transform: rotate(45deg); }
+.satellite-row i.natural { border-radius: 50%; transform: none; }
+.satellite-row small { display: block; font-size: 10px; color: #94a1a4; margin-top: 3px; }
+.satellite-row small span { color: #c9aa86; }
+.satellite-inspector { position: absolute; top: 12px; right: 4.2%; bottom: 86px; width: 280px; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: #60716a transparent; overscroll-behavior: contain; padding: 18px; border: 1px solid #9db3ad2b; border-radius:0; background: #000; pointer-events: auto; }
+.satellite-inspector h2 { margin-top: 0; }
+.satellite-status { color: var(--accent); font-size: 11px; line-height: 1.5; }
+.satellite-status.unavailable { color: #d2b08c; }
+.satellite-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 18px 0; }
+.satellite-metrics span { display: block; font-size: 9px; letter-spacing: .06em; color: #9aa7a8; margin-bottom: 7px; }
+.satellite-metrics strong { font-family: 'Space Grotesk Variable', monospace; font-size: 20px; font-weight: 400; }
+.satellite-coverage { color: #a1adb0; font-size: 11px; line-height: 1.7; }
+.satellite-inspector a { display: inline-block; color: #c5d3bc; font-size: 11px; text-decoration: none; padding: 9px 0; }
+.satellite-inspector .primary-button { margin: 4px 0 10px; width: 100%; font-size: 12px; }
+.satellite-caption { position: absolute; bottom: 30px; left: 40%; right: 19%; color: #a8b4b5; font-size: 11px; line-height: 1.6; }
+.satellite-caption p { margin: 7px 0 0; }
+.satellite-caption p:last-child { color: #829396; font-size: 10px; }
+.satellite-labels { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.satellite-label { position: absolute; transform: translate(13px, -50%); pointer-events: auto; padding: 6px 8px; font-size: 11px; color: #a6b7bb; background: #06080bd9; border-left: 1px solid #a6b7bb55; white-space: nowrap; }
+.satellite-label.active { color: #ffffff; border-color: #ffffff; }
+.satellite-label:hover { background: #202020; }
+[data-view=satellites] .coordinate-readout { display: none; }
+[data-view=satellites] .screen-vignette { background: linear-gradient(90deg, #06080b 0%, #06080ba0 22%, transparent 38%), linear-gradient(0deg, #06080b 0%, transparent 27%, transparent 80%, #06080b 100%); }
+[data-view=satellites] .view-tools { top: auto; bottom: 20px; right: 4.2%; flex-direction: row; border-radius:0; }
+[data-view=satellites] .view-tools > span { width: 1px; height: 24px; margin: 5px; }
+.satellite-model-section { margin: 16px -8px 20px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.satellite-model-canvas { height: 200px; position: relative; width: 100%; background: radial-gradient(ellipse at center, #151515, #000 72%); border-radius:0; touch-action: none; }
+.satellite-model-canvas canvas { width: 100%; height: 100%; display: block; }
+.model-status { color: #93a7af; font-size: 10px; line-height: 1.6; margin: 10px 8px 3px; }
+.model-actions { display: flex; justify-content: space-between; align-items: center; margin: 0 8px; }
+.model-actions .text-button, .model-actions a { font-size: 10px; padding: 6px 0; }
+.model-actions svg { width: 12px; height: 12px; }
+.model-dialog { width: min(900px,90vw); max-width: 90vw; background: #000; color: var(--text); border: 1px solid #9db3ad40; padding: 24px; }
+.model-dialog::backdrop { background: #02070bdc; backdrop-filter: blur(8px); }
+.model-dialog .satellite-model-canvas { height: min(62vh,580px); }
+.model-dialog .dialog-heading { margin-bottom: 12px; }
+.satellite-total { margin: 22px 0 8px; display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
+.satellite-total strong { font-family: 'Space Grotesk Variable', monospace; font-size: 39px; font-weight: 400; letter-spacing: -.04em; line-height: 1; }
+.satellite-total span { font-size: 12px; color: #b2c2ba; }
+.catalog-stamp { font-size: 10px; line-height: 1.7; color: #97a9af; }
+.orbit-filters { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-top: 18px; }
+.orbit-filters button { border: 1px solid #9db3ad30; border-radius:0; padding: 9px 10px; text-align: left; display: flex; justify-content: space-between; gap: 6px; align-items: center; }
+.orbit-filters button:first-child { grid-column: 1 / -1; }
+.orbit-filters button span { font-size: 12px; color: var(--orbit-color); }
+.orbit-filters button small { font-family: 'Space Grotesk Variable', monospace; font-size: 10px; color: #a3b2b4; }
+.orbit-filters button[aria-pressed=true] { background: #ffffff14; border-color: #ffffff76; }
+.orbit-filters button:hover { background: #ffffff0c; }
+.orbit-filter-description { min-height: 34px; color: #9daeb1; font-size: 11px; line-height: 1.6; margin: 12px 0; }
+.satellite-search { display: block; margin-top: 14px; }
+.satellite-search span { display: block; font-size: 11px; color: #b3c1bf; margin-bottom: 7px; }
+.satellite-search input { width: 100%; border: 1px solid #9db3ad35; background: #0a0a0a; color: #e0e8df; padding: 10px; border-radius:0; font-size: 12px; }
+.satellite-pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; font-size: 10px; color: #a0b1b4; }
+.satellite-pagination button { border: 1px solid #9db3ad30; padding: 5px 12px; font-size: 14px; }
+.satellite-pagination button:disabled { opacity: .3; cursor: default; }
+.satellite-inspector h2 { font-size: 19px; font-weight: 450; letter-spacing: -.035em; line-height: 1.3; margin: 12px 0; overflow-wrap: anywhere; }
+
+@media(min-width:761px) {
+  .satellite-total { margin: 16px 0 6px; }
+  .satellite-total strong { font-size: 32px; }
+  .catalog-stamp { margin: 7px 0; }
+  .orbit-filters { margin-top: 12px; }
+  .orbit-filters button { padding: 7px 9px; }
+  .orbit-filter-description { margin: 9px 0; }
+  .satellite-search { margin-top: 8px; }
+}
+@media(min-width:761px) and (max-height:800px) {
+  .satellite-panel, .satellite-inspector { top: 8px; }
+  .satellite-panel > .text-button { margin-bottom: 12px; }
+  .satellite-worlds button { padding: 7px 14px; }
+  .satellite-total { margin: 10px 0 5px; gap: 10px; }
+  .satellite-total strong { font-size: 28px; }
+  .satellite-total span { font-size: 11px; }
+  .catalog-stamp { margin: 5px 0; font-size: 9px; }
+  .orbit-filters { margin-top: 8px; gap: 5px; }
+  .orbit-filters button { padding: 6px 8px; }
+  .orbit-filter-description { min-height: 0; font-size: 10px; margin: 8px 0; }
+  .satellite-search span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .satellite-search input { padding: 8px 10px; }
+  .satellite-model-canvas { height: 170px; }
+}
+@media(max-width:760px) {
+  .main-nav { gap: 13px; margin-right: 8px; }
+  .nav-button { font-size: 9px; }
+  .brand { gap: 5px; font-size: 9px; }
+  .brand-symbol svg { width: 25px; }
+  .observatory[data-view=satellites] { min-height: 1500px; }
+  .satellite-panel { left: 6%; top: 12px; bottom: auto; width: 88%; height: 720px; }
+  .satellite-panel > .text-button { margin-bottom: 12px; }
+  .satellite-worlds { margin-bottom: 240px; }
+  #earth-catalog-controls { background: #000; padding: 0 6px; }
+  .satellite-list { background: #000; min-height: 100px; }
+  .satellite-inspector { top: 754px; bottom: 14px; right: 6%; width: 88%; }
+  .satellite-row { padding: 8px; font-size: 12px; }
+  .satellite-caption { display: none; }
+  [data-view=satellites] .view-tools { top: 200px; bottom: auto; right: 6%; flex-direction: column; }
+  [data-view=satellites] .screen-vignette { background: linear-gradient(0deg, #06080b 0%, transparent 55%, transparent 80%, #06080b 100%); }
+  .satellite-total { margin-top: 5px; }
+  .satellite-total strong { font-size: 27px; }
+  .satellite-total span { font-size: 10px; }
+  .orbit-filter-description { display: none; }
+  .satellite-search span { display: none; }
+  .orbit-filters { margin-top: 8px; }
+  .orbit-filters button { padding: 6px; }
+  .satellite-model-canvas { height: 170px; }
+}
+
+.satellite-inspector-heading { display: flex; align-items: flex-start; gap: 12px; }
+.satellite-inspector-heading h2 { flex: 1; min-width: 0; margin: 0; }
+#close-satellite-inspector { flex-shrink: 0; width: 27px; height: 27px; border: 0; outline: none; background: transparent; color: #999; }
+#close-satellite-inspector:hover { color: #fff; }
+#close-satellite-inspector:focus-visible { color: #fff; background: #222; outline: none; }

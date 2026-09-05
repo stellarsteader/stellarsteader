@@ -1,0 +1,107 @@
+# Third-party notices
+
+## Surface place names
+
+Earth populated places: Natural Earth, 1:10m populated places (simple), distributed through the project's maintained GeoJSON repository. Natural Earth data is in the public domain. Coordinates, names, country context, source IDs, and display/population metadata are converted to a compact application catalog.
+
+Source: https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/
+
+Terms: https://www.naturalearthdata.com/about/terms-of-use/
+
+Moon and Mars named features: Gazetteer of Planetary Nomenclature, USGS Astrogeology Science Center and IAU Working Group for Planetary System Nomenclature. Adopted feature names and KML center coordinates are converted from the official named-feature KMZ downloads. Source feature IDs and individual Gazetteer links are preserved; one identical duplicate source row is collapsed. Application zoom tiers and landmark priorities are added for presentation.
+
+Source: https://planetarynames.wr.usgs.gov/GIS_Downloads
+
+Coordinate conventions: https://planetarynames.wr.usgs.gov/Page/Website
+
+Original download URLs, timestamps, and SHA-256 checksums accompany the generated catalog. No endorsement is implied.
+
+## Solar System Scope / INOVE
+
+Earth and Mars maps are by Solar System Scope / INOVE, distributed under [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/).
+
+Source: https://www.solarsystemscope.com/textures/
+
+Earth day, night, and packed elevation/roughness/cloud textures are distributed through the Three.js examples. Mars uses the 8K Mars map. The assets in this project are resized/re-encoded as WebP. This is an adaptation; no endorsement is implied.
+
+## NASA Scientific Visualization Studio
+
+Lunar color and displacement: CGI Moon Kit, Ernie Wright, NASA Scientific Visualization Studio. Source imagery/elevation from LRO, LROC and LOLA teams.
+
+Source: https://svs.gsfc.nasa.gov/4720/
+
+The 2019 lunar color TIFF is converted to WebP. The unsigned elevation TIFF is normalized and converted to grayscale PNG for illustrative relief. These prepared assets are not scientific measurement products.
+
+## Three.js
+
+The Earth material development references the official WebGPU Earth example. Three.js is distributed under the MIT License:
+
+Copyright © 2010-2026 three.js authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Other installed dependencies retain their license files in their distributed packages. DM Sans and Space Grotesk are distributed through Fontsource under the SIL Open Font License.
+
+
+## satellite.js
+
+Pure JavaScript SGP4 propagation, version 6.0.2. https://github.com/shashwatak/satellite-js
+
+MIT License
+
+Copyright (C) 2013 Shashwat Kandadai, UCSC Jack Baskin School of Engineering
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+## Satellite orbit data
+
+CelesTrak GP/OMM: https://celestrak.org/NORAD/documentation/gp-data-formats.php
+
+NASA/JPL Horizons: https://ssd-api.jpl.nasa.gov/doc/horizons.html
+
+The downloaded catalog retains source URLs, object identifiers, reference frames, individual fetch times, and element epochs or coverage windows. Derived display positions are calculated or interpolated; source ephemerides are not spacecraft telemetry.
+
+
+## Expanded Earth active-satellite catalog
+
+CelesTrak public active-satellite GP/OMM group: https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=json
+
+The application redisplays a downloaded snapshot, deduplicated by NORAD ID, with the original name and orbital elements retained. The file includes its source URL, download timestamp, and SHA-256. Orbit classes and colors are application-derived presentation metadata. The active feed includes passive targets and separately cataloged components; it is not a complete debris census or a current operational-status guarantee.
+
+Reference for orbit terminology: ESA, Types of orbits, https://www.esa.int/Enabling_Support/Space_Transportation/Types_of_orbits
+
+
+## NASA 3D appearance models
+
+Eight original GLB assets are bundled: ISS, Hubble, LRO, MRO, Mars Odyssey, MAVEN, Phobos, and Deimos. Spacecraft models come from [NASA 3D Resources](https://github.com/nasa/NASA-3D-Resources) at revision `11ebb4ee043715aefbba6aeec8a61746fad67fa7`. The moon shape models come from NASA Science's [Phobos](https://science.nasa.gov/resource/phobos-mars-moon-3d-model/) and [Deimos](https://science.nasa.gov/resource/deimos-mars-moon-3d-model/) resources.
+
+The source GLBs are retained unmodified. Runtime centering, display scale, inspection lighting, and camera angles are application choices. These are static appearance references, not current spacecraft configurations or attitude telemetry. No NASA endorsement is implied. Exact source URLs, revision, download times, byte lengths, and SHA-256 checksums are recorded in `public/models/manifest.json`.
+
+## Google Draco
+
+The locally served Draco decoder is copied from the installed Three.js distribution and used to decode the NASA model geometry. Copyright 2016 The Draco Authors. Distributed under the Apache License, Version 2.0; the full upstream license and bundled third-party notices are retained in `public/vendor/draco/LICENSE`. Source: https://github.com/google/draco
+
+## Location time zones
+
+Earth coordinate-to-time-zone lookup uses @photostructure/tz-lookup (CC0-1.0): https://github.com/photostructure/tz-lookup. Its compressed boundary data provides approximate IANA zone lookup; boundaries can be imprecise. Civil time and daylight-saving rules are formatted by the browser’s Intl time-zone database. Moon and Mars local solar time comes from the existing Astronomy Engine subsolar geometry.

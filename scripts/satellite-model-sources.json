@@ -1,0 +1,64 @@
+[
+  {
+    "id": "iss",
+    "name": "International Space Station (ISS) (A)",
+    "url": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/International%20Space%20Station%20%28ISS%29%20%28A%29/International%20Space%20Station%20%28ISS%29%20%28A%29.glb",
+    "sourceUrl": "https://github.com/nasa/NASA-3D-Resources/blob/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/International%20Space%20Station%20%28ISS%29%20%28A%29/International%20Space%20Station%20%28ISS%29%20%28A%29.glb",
+    "credit": "NASA 3D Resources",
+    "revision": "11ebb4ee043715aefbba6aeec8a61746fad67fa7"
+  },
+  {
+    "id": "hubble",
+    "name": "Hubble Space Telescope (A)",
+    "url": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Hubble%20Space%20Telescope%20%28A%29/Hubble%20Space%20Telescope%20%28A%29.glb",
+    "sourceUrl": "https://github.com/nasa/NASA-3D-Resources/blob/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Hubble%20Space%20Telescope%20%28A%29/Hubble%20Space%20Telescope%20%28A%29.glb",
+    "credit": "NASA 3D Resources",
+    "revision": "11ebb4ee043715aefbba6aeec8a61746fad67fa7"
+  },
+  {
+    "id": "lro",
+    "name": "Lunar Reconnaissance Orbiter (B)",
+    "url": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Lunar%20Reconnaissance%20Orbiter%20%28B%29/Lunar%20Reconnaissance%20Orbiter%20%28B%29.glb",
+    "sourceUrl": "https://github.com/nasa/NASA-3D-Resources/blob/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Lunar%20Reconnaissance%20Orbiter%20%28B%29/Lunar%20Reconnaissance%20Orbiter%20%28B%29.glb",
+    "credit": "NASA 3D Resources",
+    "revision": "11ebb4ee043715aefbba6aeec8a61746fad67fa7"
+  },
+  {
+    "id": "mro",
+    "name": "Mars Reconnaissance Orbiter (MRO) (A)",
+    "url": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Mars%20Reconnaissance%20Orbiter%20%28MRO%29%20%28A%29/Mars%20Reconnaissance%20Orbiter%20%28MRO%29%20%28A%29.glb",
+    "sourceUrl": "https://github.com/nasa/NASA-3D-Resources/blob/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Mars%20Reconnaissance%20Orbiter%20%28MRO%29%20%28A%29/Mars%20Reconnaissance%20Orbiter%20%28MRO%29%20%28A%29.glb",
+    "credit": "NASA 3D Resources",
+    "revision": "11ebb4ee043715aefbba6aeec8a61746fad67fa7"
+  },
+  {
+    "id": "odyssey",
+    "name": "Mars Odyssey",
+    "url": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Mars%20Odyssey/Mars%20Odyssey.glb",
+    "sourceUrl": "https://github.com/nasa/NASA-3D-Resources/blob/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Mars%20Odyssey/Mars%20Odyssey.glb",
+    "credit": "NASA 3D Resources",
+    "revision": "11ebb4ee043715aefbba6aeec8a61746fad67fa7"
+  },
+  {
+    "id": "maven",
+    "name": "Mars Atmosphere and Volatile EvolutioN (MAVEN) (A)",
+    "url": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Mars%20Atmosphere%20and%20Volatile%20EvolutioN%20%28MAVEN%29%20%28A%29/Mars%20Atmosphere%20and%20Volatile%20EvolutioN%20%28MAVEN%29%20%28A%29.glb",
+    "sourceUrl": "https://github.com/nasa/NASA-3D-Resources/blob/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Mars%20Atmosphere%20and%20Volatile%20EvolutioN%20%28MAVEN%29%20%28A%29/Mars%20Atmosphere%20and%20Volatile%20EvolutioN%20%28MAVEN%29%20%28A%29.glb",
+    "credit": "NASA 3D Resources",
+    "revision": "11ebb4ee043715aefbba6aeec8a61746fad67fa7"
+  },
+  {
+    "id": "phobos",
+    "name": "Phobos",
+    "url": "https://assets.science.nasa.gov/content/dam/science/psd/mars/resources/gltf_files/24878_Phobos_1_1000.glb",
+    "sourceUrl": "https://science.nasa.gov/resource/phobos-mars-moon-3d-model/",
+    "credit": "NASA/JPL-Caltech"
+  },
+  {
+    "id": "deimos",
+    "name": "Deimos",
+    "url": "https://assets.science.nasa.gov/content/dam/science/psd/mars/resources/gltf_files/24879_Deimos_1_1000.glb",
+    "sourceUrl": "https://science.nasa.gov/resource/deimos-mars-moon-3d-model/",
+    "credit": "NASA/JPL-Caltech"
+  }
+]

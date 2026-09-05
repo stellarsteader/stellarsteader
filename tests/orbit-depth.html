@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Orbit depth regression</title>
+<style>body{background:#111;color:#eee;font:16px monospace;padding:24px}li{margin:10px 0}</style>
+<h1>Orbit depth regression</h1>
+<p id="status">Running GPU checks…</p>
+<ul id="results"></ul>
+<script type="module">
+import * as THREE from 'three/webgpu';
+import { OrbitLine } from '../src/orbit-line.ts';
+
+// Read back actual GPU pixels, testing both possible object draw orders.
+const renderer = new THREE.WebGPURenderer({ forceWebGL: new URLSearchParams(location.search).has('webgl'), antialias: false });
+const scene = new THREE.Scene();
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+camera.position.z = 3;
+const target = new THREE.RenderTarget(128, 128);
+const planet = new THREE.Mesh(new THREE.SphereGeometry(0.65, 48, 32), new THREE.MeshBasicMaterial({color:'#ff0000', toneMapped:false}));
+const line = new OrbitLine('#ffffff', true);
+scene.add(planet, line);
+let passed = 0;
+function check(label, condition) {
+  const item = document.createElement('li');
+  item.textContent = `${condition ? 'PASS' : 'FAIL'} — ${label}`;
+  document.querySelector('#results').append(item);
+  if (!condition) throw new Error(label);
+  passed++;
+}
+async function foregroundVisible(z, lineFirst) {
+  line.setPoints([new THREE.Vector3(-0.9, 0, z), new THREE.Vector3(0.9, 0, z)]);
+  line.renderOrder = lineFirst ? 0 : 1;
+  planet.renderOrder = lineFirst ? 1 : 0;
+  renderer.render(scene, camera);
+  const pixels = await renderer.readRenderTargetPixelsAsync(target, 62, 62, 4, 4);
+  return pixels.some((channel, index) => index % 4 === 1 && channel > 40);
+}
+try {
+  await renderer.init();
+  renderer.setSize(128, 128);
+  renderer.setRenderTarget(target);
+  // Negative control proves this test detects the original foreground-erasure bug.
+  line.material.depthWrite = false;
+  check('Detects the old missing-depth-write regression', !(await foregroundVisible(0.8, true)));
+  line.material.depthWrite = true;
+  for (const selected of [true, false]) {
+    line.setSelected(selected);
+    for (const lineFirst of [true, false]) {
+      for (const front of [true, false]) {
+        const visible = await foregroundVisible(front ? 0.8 : -0.8, lineFirst);
+        check(`${selected ? 'Selected' : 'Unselected'}, line drawn ${lineFirst ? 'first' : 'last'}: ${front ? 'foreground visible' : 'rear hidden'}`, visible === front);
+      }
+    }
+  }
+  document.querySelector('#status').textContent = `${passed}/9 passed · ${renderer.backend.isWebGPUBackend ? 'WebGPU' : 'WebGL 2'}`;
+  document.title = 'PASS — Orbit depth regression';
+} catch (error) {
+  document.querySelector('#status').textContent = `FAIL: ${error.message}`;
+  document.title = 'FAIL — Orbit depth regression';
+} finally {
+  line.dispose(); planet.geometry.dispose(); planet.material.dispose(); target.dispose(); renderer.dispose();
+}
+</script>

@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "models": [
+    {
+      "id": "iss",
+      "name": "International Space Station (ISS) (A)",
+      "url": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/International%20Space%20Station%20%28ISS%29%20%28A%29/International%20Space%20Station%20%28ISS%29%20%28A%29.glb",
+      "sourceUrl": "https://github.com/nasa/NASA-3D-Resources/blob/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/International%20Space%20Station%20%28ISS%29%20%28A%29/International%20Space%20Station%20%28ISS%29%20%28A%29.glb",
+      "credit": "NASA 3D Resources",
+      "revision": "11ebb4ee043715aefbba6aeec8a61746fad67fa7",
+      "path": "/models/iss.glb",
+      "downloadedAt": "2026-09-05T17:19:35.826Z",
+      "bytes": 39708,
+      "sha256": "70d0619a69312a45cbf740ba9a491fad854e10226dc5936c213fb1f93f063678"
+    },
+    {
+      "id": "hubble",
+      "name": "Hubble Space Telescope (A)",
+      "url": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Hubble%20Space%20Telescope%20%28A%29/Hubble%20Space%20Telescope%20%28A%29.glb",
+      "sourceUrl": "https://github.com/nasa/NASA-3D-Resources/blob/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Hubble%20Space%20Telescope%20%28A%29/Hubble%20Space%20Telescope%20%28A%29.glb",
+      "credit": "NASA 3D Resources",
+      "revision": "11ebb4ee043715aefbba6aeec8a61746fad67fa7",
+      "path": "/models/hubble.glb",
+      "downloadedAt": "2026-09-05T16:57:45.270Z",
+      "bytes": 1694988,
+      "sha256": "e5ba4de15c7d359ac8fa1ab7e286aff42dec09c0fadae3db99252587f39fa384"
+    },
+    {
+      "id": "lro",
+      "name": "Lunar Reconnaissance Orbiter (B)",
+      "url": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Lunar%20Reconnaissance%20Orbiter%20%28B%29/Lunar%20Reconnaissance%20Orbiter%20%28B%29.glb",
+      "sourceUrl": "https://github.com/nasa/NASA-3D-Resources/blob/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Lunar%20Reconnaissance%20Orbiter%20%28B%29/Lunar%20Reconnaissance%20Orbiter%20%28B%29.glb",
+      "credit": "NASA 3D Resources",
+      "revision": "11ebb4ee043715aefbba6aeec8a61746fad67fa7",
+      "path": "/models/lro.glb",
+      "downloadedAt": "2026-09-05T16:54:47.298Z",
+      "bytes": 2902744,
+      "sha256": "c868a65e36ed293476be3d05e7e60968778c5cf4b2a7aba8859fcc20242a0612"
+    },
+    {
+      "id": "mro",
+      "name": "Mars Reconnaissance Orbiter (MRO) (A)",
+      "url": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Mars%20Reconnaissance%20Orbiter%20%28MRO%29%20%28A%29/Mars%20Reconnaissance%20Orbiter%20%28MRO%29%20%28A%29.glb",
+      "sourceUrl": "https://github.com/nasa/NASA-3D-Resources/blob/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Mars%20Reconnaissance%20Orbiter%20%28MRO%29%20%28A%29/Mars%20Reconnaissance%20Orbiter%20%28MRO%29%20%28A%29.glb",
+      "credit": "NASA 3D Resources",
+      "revision": "11ebb4ee043715aefbba6aeec8a61746fad67fa7",
+      "path": "/models/mro.glb",
+      "downloadedAt": "2026-09-05T16:54:47.805Z",
+      "bytes": 2652460,
+      "sha256": "b195c566d227dec8e42ca2fafcc2a8cc26a127e04ed577e4b9515199d2002d9e"
+    },
+    {
+      "id": "odyssey",
+      "name": "Mars Odyssey",
+      "url": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Mars%20Odyssey/Mars%20Odyssey.glb",
+      "sourceUrl": "https://github.com/nasa/NASA-3D-Resources/blob/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Mars%20Odyssey/Mars%20Odyssey.glb",
+      "credit": "NASA 3D Resources",
+      "revision": "11ebb4ee043715aefbba6aeec8a61746fad67fa7",
+      "path": "/models/odyssey.glb",
+      "downloadedAt": "2026-09-05T16:54:48.530Z",
+      "bytes": 5801372,
+      "sha256": "ac0faa8dbfb54aabcbe3d06886c3d98dd29d120fd49b1c9fa6abbfbed22b049a"
+    },
+    {
+      "id": "maven",
+      "name": "Mars Atmosphere and Volatile EvolutioN (MAVEN) (A)",
+      "url": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Mars%20Atmosphere%20and%20Volatile%20EvolutioN%20%28MAVEN%29%20%28A%29/Mars%20Atmosphere%20and%20Volatile%20EvolutioN%20%28MAVEN%29%20%28A%29.glb",
+      "sourceUrl": "https://github.com/nasa/NASA-3D-Resources/blob/11ebb4ee043715aefbba6aeec8a61746fad67fa7/3D%20Models/Mars%20Atmosphere%20and%20Volatile%20EvolutioN%20%28MAVEN%29%20%28A%29/Mars%20Atmosphere%20and%20Volatile%20EvolutioN%20%28MAVEN%29%20%28A%29.glb",
+      "credit": "NASA 3D Resources",
+      "revision": "11ebb4ee043715aefbba6aeec8a61746fad67fa7",
+      "path": "/models/maven.glb",
+      "downloadedAt": "2026-09-05T16:54:49.658Z",
+      "bytes": 10465800,
+      "sha256": "167484bdb26900ace3185389089f419a4cf9eb04e62f595049fdb4b0968283da"
+    },
+    {
+      "id": "phobos",
+      "name": "Phobos",
+      "url": "https://assets.science.nasa.gov/content/dam/science/psd/mars/resources/gltf_files/24878_Phobos_1_1000.glb",
+      "sourceUrl": "https://science.nasa.gov/resource/phobos-mars-moon-3d-model/",
+      "credit": "NASA/JPL-Caltech",
+      "path": "/models/phobos.glb",
+      "downloadedAt": "2026-09-05T16:54:50.980Z",
+      "bytes": 3855016,
+      "sha256": "757712101e4fbcf9527942ee664a3bc6dfe3ab460466b760f4bf51ee85dbd8d3"
+    },
+    {
+      "id": "deimos",
+      "name": "Deimos",
+      "url": "https://assets.science.nasa.gov/content/dam/science/psd/mars/resources/gltf_files/24879_Deimos_1_1000.glb",
+      "sourceUrl": "https://science.nasa.gov/resource/deimos-mars-moon-3d-model/",
+      "credit": "NASA/JPL-Caltech",
+      "path": "/models/deimos.glb",
+      "downloadedAt": "2026-09-05T16:54:52.056Z",
+      "bytes": 1600012,
+      "sha256": "5d5da763970acffe88aac26d3c3bd0fa66c5bef251d1bb4bfe2ae5fd723507e4"
+    }
+  ]
+}

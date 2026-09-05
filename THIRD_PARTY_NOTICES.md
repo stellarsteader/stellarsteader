@@ -105,3 +105,15 @@ The locally served Draco decoder is copied from the installed Three.js distribut
 ## Location time zones
 
 Earth coordinate-to-time-zone lookup uses @photostructure/tz-lookup (CC0-1.0): https://github.com/photostructure/tz-lookup. Its compressed boundary data provides approximate IANA zone lookup; boundaries can be imprecise. Civil time and daylight-saving rules are formatted by the browser’s Intl time-zone database. Moon and Mars local solar time comes from the existing Astronomy Engine subsolar geometry.
+
+## HYG star catalog
+
+The orbits background uses HYG v4.1 by David Nash / Astronomy Nexus, compiled from Hipparcos, Yale Bright Star, and Gliese catalogs.
+
+Source: https://github.com/astronexus/HYG-Database/blob/main/hyg/CURRENT/hygdata_v41.csv
+
+License: [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/).
+
+`src/data/stars.json` is an adapted subset, distributed under the same CC BY-SA 4.0 license: 8,920 non-Solar entries with apparent V magnitude ≤ 6.5, retaining HYG ID, J2000 right ascension in hours, declination in degrees, V magnitude, and B−V color index (null when absent). Rebuild with `python3 scripts/build-stars.py /path/to/hygdata_v41.csv`.
+
+Rendering rotates the fixed J2000 coordinates into the orbit scene's J2000 ecliptic frame. Brightness is compressed for display and B−V maps to an approximate color palette. The sky has no proper-motion, parallax, or observer-dependent aberration correction. No endorsement is implied.

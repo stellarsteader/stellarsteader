@@ -3,6 +3,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { planetMaterials, type PlanetTextures } from './materials';
 import { bodies, physicalState, orbitPosition, type BodyId, type SceneClock } from './astronomy';
 import { OrbitLine } from './orbit-line';
+import { createStarBackground } from './star-background';
+import { orbitMaterial } from './orbit-material';
+import { orbitLightingState } from './orbit-lighting';
 import { LUNAR_CONTEXT_SCALE, moonPositionInSolarView } from './orbit-layout';
 import { SatelliteLayer } from './satellite-layer';
 import { type Satellite } from './satellites';
@@ -43,7 +46,9 @@ export class Observatory {
   onSatelliteSelect?: (id: string) => void;
   private orbitScene = new THREE.Scene();
   private orbitPaths = new THREE.Group();
+  private orbitStars = createStarBackground();
   private lunarContextPath?: OrbitLine;
+  private orbitMaterials = new Map<BodyId, ReturnType<typeof orbitMaterial>>();
   private orbitMarkers = new Map<BodyId, THREE.Mesh>();
   private centralBody?: THREE.Mesh;
   private worker = new Worker(new URL('./orbit-worker.ts', import.meta.url), { type: 'module' });
@@ -104,10 +109,9 @@ export class Observatory {
     this.controls.addEventListener('end', () => { this.interacting = false; this.resumeRotationAt = performance.now() + 2500; });
     this.sun.position.copy(lightDirection).multiplyScalar(100);
     this.scene.add(this.sun, this.ambient);
-    this.orbitScene.add(new THREE.AmbientLight('#ffffff', 2.1));
     this.orbitScene.add(this.orbitPaths);
     this.addStars(this.scene, 700);
-    this.addStars(this.orbitScene, 500);
+    this.orbitScene.add(this.orbitStars);
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(this.host);
     this.renderer.domElement.addEventListener('pointerdown', this.pointerDown);
@@ -188,7 +192,9 @@ export class Observatory {
     this.ownedTextures.push(...Object.values(maps).filter((map): map is THREE.Texture => map instanceof THREE.Texture));
     this.planets.set(id, { root, surface, atmosphere, clouds, grid, materials, presentation, basePresentation: presentation.clone(), orientation: state.orientation.clone(), size });
     this.scene.add(root);
-    const marker = new THREE.Mesh(new THREE.SphereGeometry(1, 40, 24), new THREE.MeshBasicMaterial({ map: maps.day, color: '#ffffff' }));
+    const orbitSurface = orbitMaterial(id, maps.day, maps.night);
+    this.orbitMaterials.set(id, orbitSurface);
+    const marker = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 40), orbitSurface.material);
     marker.scale.setScalar(id === 'earth' ? 0.14 : id === 'mars' ? 0.12 : 0.1);
     marker.userData.body = id;
     this.orbitMarkers.set(id, marker);
@@ -350,10 +356,11 @@ export class Observatory {
   private setupOrbit() {
     if (this.centralBody) {
       this.orbitScene.remove(this.centralBody);
-      this.centralBody.geometry.dispose(); (this.centralBody.material as THREE.Material).dispose();
+      this.centralBody.geometry.dispose();
+      if (this.centralBody.material !== this.orbitMaterials.get('earth')!.material) (this.centralBody.material as THREE.Material).dispose();
     }
     const moonView = this.selected === 'moon';
-    const material = new THREE.MeshBasicMaterial(moonView ? { map: (this.orbitMarkers.get('earth')!.material as THREE.MeshBasicMaterial).map } : { color: '#ffe3ae' });
+    const material = moonView ? this.orbitMaterials.get('earth')!.material : new THREE.MeshBasicMaterial({ color: '#ffe3ae', toneMapped: false });
     this.centralBody = new THREE.Mesh(new THREE.SphereGeometry(moonView ? 0.24 : 0.16, 40, 24), material);
     this.orbitScene.add(this.centralBody);
     this.orbitMarkers.forEach((marker, id) => { marker.visible = moonView ? id === 'moon' : this.selected === 'earth' || id !== 'moon'; });
@@ -425,6 +432,13 @@ export class Observatory {
       planet.materials.radius.value = planet.size;
       if (planet.clouds) planet.materials.cloudOffset.value = reducedMotion ? 0 : ((date.getTime() / 86400000) % 1) * 0.006;
       const marker = this.orbitMarkers.get(id)!;
+      const lighting = orbitLightingState(id, date);
+      const surface = this.orbitMaterials.get(id)!;
+      surface.sun.value.copy(lighting.sun);
+      surface.occluder.value.copy(lighting.occluder);
+      surface.occluderRadius.value = lighting.occluderRadius;
+      marker.quaternion.copy(lighting.orientation);
+      if (id === 'earth' && this.selected === 'moon' && this.centralBody) this.centralBody.quaternion.copy(lighting.orientation);
       marker.position.set(...(id === 'moon' && this.view === 'orbit' && this.selected === 'earth' ? moonPositionInSolarView(date) : orbitPosition(id, date)));
     });
     if (this.lunarContextPath) this.lunarContextPath.position.copy(this.orbitMarkers.get('earth')!.position);
@@ -435,6 +449,7 @@ export class Observatory {
 
   setShadowsEnabled(enabled: boolean) {
     this.shadowsEnabled = enabled;
+    this.orbitMaterials.forEach(surface => { surface.unlit.value = enabled ? 0 : 1; });
     this.planets.forEach(p => { p.materials.unlit.value = enabled ? 0 : 1; });
     this.sun.intensity = enabled ? 3 : 0;
     this.ambient.color.set(enabled ? '#a2b6ce' : '#ffffff');
@@ -486,6 +501,7 @@ export class Observatory {
     this.controls.autoRotateSpeed = (1 / 6) * (this.view === 'detail' ? this.controls.rotateSpeed / 0.45 : 1);
     this.controls.update(delta);
     if (this.view === 'satellites') this.satellites.update(this.clock.now(), this.planets.get(this.selected)!.presentation, this.clock.rate, this.camera, this.host.clientHeight);
+    if (this.view === 'orbit') this.orbitStars.position.copy(this.camera.position);
     this.renderer.render(this.view === 'orbit' ? this.orbitScene : this.scene, this.camera);
     if (this.view === 'detail' && this.surfaceMap.enabled) this.onMapFrame?.(this.surfaceMap.update(this.planets.get(this.selected)!.surface, this.camera, this.host.clientWidth, this.host.clientHeight, bodies[this.selected].radius));
     if (this.view === 'satellites') this.onSatelliteLabels?.(this.satellites.labels(this.camera, this.host.clientWidth, this.host.clientHeight));

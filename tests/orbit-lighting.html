@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Orbit lighting regression</title>
+<style>body{background:#111;color:#eee;font:16px monospace;padding:24px}li{margin:10px 0}</style>
+<h1>Orbit lighting regression</h1><p id="status">Running GPU checks…</p><ul id="results"></ul>
+<script type="module">
+import * as THREE from 'three/webgpu';
+import { orbitMaterial } from '../src/orbit-material.ts';
+const renderer = new THREE.WebGPURenderer({forceWebGL:new URLSearchParams(location.search).has('webgl'),antialias:false});
+const scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(35,1,.1,10);
+camera.position.z=4;
+const white=new THREE.DataTexture(new Uint8Array([255,255,255,255]),1,1); white.needsUpdate=true;
+const surface=orbitMaterial('moon',white);
+const sphere=new THREE.Mesh(new THREE.SphereGeometry(1,64,40),surface.material);scene.add(sphere);
+const target=new THREE.RenderTarget(128,128);
+let passed=0;
+function check(name,condition){
+  const item=document.createElement('li');item.textContent=`${condition?'PASS':'FAIL'} — ${name}`;document.querySelector('#results').append(item);
+  if(!condition)throw new Error(name);passed++;
+}
+async function luminance(){
+  renderer.render(scene,camera);const p=await renderer.readRenderTargetPixelsAsync(target,62,62,4,4);
+  return p.reduce((sum,v,i)=>sum+(i%4===3?0:v),0)/48;
+}
+try{
+  await renderer.init();renderer.setSize(128,128);renderer.setRenderTarget(target);
+  surface.sun.value.set(0,0,149597870.7);
+  const day=await luminance();check('Sun-facing surface is illuminated',day>180);
+  surface.sun.value.z*=-1;const night=await luminance();check('Far hemisphere is dark',night<day*.15);
+  surface.unlit.value=1;check('Inspection toggle restores full texture',await luminance()>180);surface.unlit.value=0;
+  surface.sun.value.z*=-1;surface.occluder.value.set(0,0,384400);surface.occluderRadius.value=6371;
+  check('Earth umbra blocks direct sunlight on Moon',await luminance()<day*.15);
+  surface.occluder.value.x=6371;
+  const partial=await luminance();check('Penumbra has partial sunlight',partial>night+15&&partial<day-15);
+  surface.occluder.value.x=15000;check('Outside the shadow is fully lit',await luminance()>day*.95);
+  surface.occluder.value.set(0,0,-384400);check('Occluder behind surface cannot block the Sun',await luminance()>day*.95);
+  document.querySelector('#status').textContent=`${passed}/7 passed · ${renderer.backend.isWebGPUBackend?'WebGPU':'WebGL 2'}`;document.title='PASS — Orbit lighting';
+}catch(e){document.querySelector('#status').textContent=`FAIL: ${e.message}`;document.title='FAIL — Orbit lighting';}
+finally{surface.material.dispose();sphere.geometry.dispose();white.dispose();target.dispose();renderer.dispose();}
+</script>

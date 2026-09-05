@@ -107,7 +107,6 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <button class="primary-button" id="satellite-epoch" hidden>View available epoch ${icons.arrow}</button>
           <a id="satellite-source" target="_blank" rel="noopener">View source data ${icons.diagonal}</a>
       </aside>
-      <div class="satellite-caption" hidden><p>¹ Above mean radius. ² Approximate orbit-length interval; open sampled path.</p></div>
 
       <section class="orbit-heading" hidden aria-labelledby="orbit-title">
         <h1 id="orbit-title">Earth’s orbit</h1>
@@ -177,6 +176,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <dialog id="sources-dialog" class="panel-dialog sources-dialog">
     <div class="dialog-heading"><div><p class="eyebrow">BEHIND THE VIEW</p><h2>Data & credits.</h2></div><button class="icon-button close-dialog" aria-label="Close data and credits">${icons.close}</button></div>
     <p class="panel-description">Current astronomical geometry, archival surfaces, and continuously rendered light.</p>
+    <div class="source-entry"><h3>Orbit illumination</h3><p>Day and night follow the Sun in the J2000 orbit frame, with body tilt and rotation tied to scene time. Earth–Moon eclipse shadows use physical radii and separations, including partial solar-disk coverage in the penumbra, independently of enlarged display scales. Surfaces are spherical; terrain shadows, atmospheric refraction during lunar eclipses, and reflected planetshine are omitted. A small display fill keeps dark silhouettes readable.</p></div>
+    <div class="source-entry"><h3>Real star background</h3><p>The orbits sky shows 8,920 stars from David Nash’s HYG v4.1 catalog, through visual magnitude 6.5. J2000 sky positions are aligned with the orbit frame; brightness is compressed and colors approximate catalog B−V values. Stars remain at infinity, with no proper-motion or parallax correction as scene time changes.</p><a href="https://github.com/astronexus/HYG-Database" target="_blank" rel="noopener">HYG catalog ↗</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0 ↗</a></div>
     <div class="source-entry"><h3>Scene time</h3><p>Julian Date is a continuous count of days used in astronomy. This value follows the scene clock, expressed in UTC.</p><p>Julian Date: <span id="scene-julian-date"></span> (UTC)</p></div>
     <div class="source-entry"><h3>Surface place names</h3><p>Earth cities come from Natural Earth. Lunar and Martian features use the USGS/IAU Gazetteer of Planetary Nomenclature, with positive-east, planetocentric coordinates from its KML exports. Display priority uses city prominence or feature diameter. Labels identify feature centers; they do not outline parcels or funding areas. Imagery remains the existing globe-level reference maps.</p><a href="https://www.naturalearthdata.com/about/terms-of-use/" target="_blank" rel="noopener">Natural Earth ↗</a> · <a href="https://planetarynames.wr.usgs.gov/GIS_Downloads" target="_blank" rel="noopener">USGS / IAU ↗</a></div>
     <div class="source-entry"><span class="source-tag calculated">SATELLITES & NATURAL MOONS</span><h3>Measured orbit inputs, calculated positions</h3><p>Earth uses a bundled snapshot of CelesTrak’s public active-satellite GP catalog and satellite.js SGP4. The total counts unique NORAD records in this snapshot, not every artificial object in orbit. This is not a debris or rocket-body census. The feed includes passive targets, separately cataloged station components, and some combined payload/rocket-body records; objects without public elements are absent. The rendered count excludes missing or invalid positions and includes markers behind Earth or outside the camera view. Only the selected Earth satellite has a name label and orbit path. Eight bundled NASA appearance models replace selected markers when available, with an interactive close-up in the inspector. Model size is enlarged and orientation is illustrative; the orbit feed contains no spacecraft attitude telemetry. TEME coordinates are converted through Earth-fixed coordinates into the globe frame; polar motion is omitted. Lunar and Martian trajectories use JPL Horizons body-centered ICRF position and velocity samples, interpolated only inside their UTC coverage. MAVEN has a separately labeled historical window. Objects without an included model use enlarged identification markers. Moon and Mars remain selected mission catalogs. Catalog membership does not guarantee current mission health.</p><a href="https://celestrak.org/NORAD/documentation/gp-data-formats.php" target="_blank" rel="noopener">CelesTrak GP ↗</a> · <a href="https://ssd-api.jpl.nasa.gov/doc/horizons.html" target="_blank" rel="noopener">JPL Horizons ↗</a></div>
@@ -242,7 +243,6 @@ function navigate(view: View, body: BodyId = currentBody, history = true) {
   $('.satellite-panel').hidden = view !== 'satellites';
   $('#satellite-inspector').hidden = view !== 'satellites';
   if (view !== 'satellites') { modelPreview?.setActive(false); $<HTMLDialogElement>('#satellite-model-dialog').close(); }
-  $('.satellite-caption').hidden = view !== 'satellites';
   $('.satellite-labels').hidden = view !== 'satellites';
   $('.orbit-heading').hidden = view !== 'orbit';
   $('#orbit-info').hidden = view !== 'orbit';
@@ -251,7 +251,8 @@ function navigate(view: View, body: BodyId = currentBody, history = true) {
   $('.orbit-labels').hidden = view !== 'orbit';
   $('[data-marker="center"]').innerHTML = body === 'moon' ? 'EARTH' : 'SUN';
   $('.view-tools').hidden = view === 'overview';
-  $('.presentation-controls').hidden = view === 'orbit';
+  $('.presentation-controls').hidden = false;
+  $('.presentation-controls [data-rotation-toggle]').hidden = view === 'orbit';
   updateAppearanceControls();
   $('.detail-switcher').hidden = view !== 'detail';
   $('#follow-dawn').hidden = view !== 'detail';

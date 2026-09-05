@@ -24,7 +24,7 @@
 .satellite-metrics span { display: block; font-size: 9px; letter-spacing: .06em; color: #9aa7a8; margin-bottom: 7px; }
 .satellite-metrics strong { font-family: 'Space Grotesk Variable', monospace; font-size: 20px; font-weight: 400; }
 .satellite-coverage { color: #a1adb0; font-size: 11px; line-height: 1.7; }
-.satellite-inspector a { display: inline-block; color: #c5d3bc; font-size: 11px; text-decoration: none; padding: 9px 0; }
+.satellite-inspector a { display: inline-flex; align-items: center; gap: 6px; color: #c5d3bc; font-size: 11px; text-decoration: none; padding: 9px 0; }
 .satellite-inspector .primary-button { margin: 4px 0 10px; width: 100%; font-size: 12px; }
 .satellite-caption { position: absolute; bottom: 30px; left: 40%; right: 19%; color: #a8b4b5; font-size: 11px; line-height: 1.6; }
 .satellite-caption p { margin: 7px 0 0; }
@@ -43,6 +43,7 @@
 .model-status { color: #93a7af; font-size: 10px; line-height: 1.6; margin: 10px 8px 3px; }
 .model-actions { display: flex; justify-content: space-between; align-items: center; margin: 0 8px; }
 .model-actions .text-button, .model-actions a { font-size: 10px; padding: 6px 0; }
+.satellite-inspector a svg { width: 12px; height: 12px; flex-shrink: 0; }
 .model-actions svg { width: 12px; height: 12px; }
 .model-dialog { width: min(900px,90vw); max-width: 90vw; background: #000; color: var(--text); border: 1px solid #9db3ad40; padding: 24px; }
 .model-dialog::backdrop { background: #02070bdc; backdrop-filter: blur(8px); }

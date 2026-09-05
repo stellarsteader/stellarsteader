@@ -62,7 +62,7 @@
   .satellite-row small { font-size: 12px; }
   .satellite-pagination { font-size: 12px; gap: 12px; margin: 16px 0; }
   .satellite-pagination button { min-width: 44px; min-height: 44px; }
-  .satellite-inspector { position: relative; inset: auto; width: 100%; margin: 20px 0 0; overflow: visible; }
+  .satellite-inspector { position: relative; inset: auto; width: 100%; margin: 0 0 20px; overflow: visible; }
   #close-satellite-inspector { width: 44px; height: 44px; }
   .orbit-heading { height: 108px; }
   .orbit-heading h1 { font-size: 28px; }

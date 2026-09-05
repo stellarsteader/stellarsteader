@@ -99,13 +99,13 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <section class="satellite-model-section" id="satellite-model-section" hidden aria-label="Satellite 3D model">
             <div id="satellite-model-host" class="satellite-model-host"><div id="satellite-model-canvas" class="satellite-model-canvas"></div></div>
             <p id="satellite-model-status" class="model-status" role="status"></p>
-            <div class="model-actions"><button id="expand-satellite-model" class="text-button" hidden>Enlarge model ${icons.diagonal}</button><a id="satellite-model-source" target="_blank" rel="noopener">Model source ↗</a></div>
+            <div class="model-actions"><button id="expand-satellite-model" class="text-button" hidden>Enlarge model ${icons.diagonal}</button><a id="satellite-model-source" target="_blank" rel="noopener">Model source ${icons.diagonal}</a></div>
           </section>
           <p id="satellite-status" class="satellite-status"></p>
           <div class="satellite-metrics"><div><span>ALTITUDE¹</span><strong id="satellite-altitude">—</strong></div><div><span>PATH WINDOW²</span><strong id="satellite-period">—</strong></div></div>
           <p class="satellite-coverage" id="satellite-coverage"></p>
           <button class="primary-button" id="satellite-epoch" hidden>View available epoch ${icons.arrow}</button>
-          <a id="satellite-source" target="_blank" rel="noopener">View source data ↗</a>
+          <a id="satellite-source" target="_blank" rel="noopener">View source data ${icons.diagonal}</a>
       </aside>
       <div class="satellite-caption" hidden><p>¹ Above mean radius. ² Approximate orbit-length interval; open sampled path.</p></div>
 
@@ -189,6 +189,16 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 `;
 
 const $ = <T extends HTMLElement = HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
+const satelliteMobileLayout = matchMedia('(max-width: 760px)');
+function arrangeSatelliteInspector() {
+  const inspector = $('#satellite-inspector');
+  // Keep reading and keyboard order aligned with the mobile visual layout.
+  if (satelliteMobileLayout.matches) $('#earth-catalog-controls').before(inspector);
+  else $('.satellite-panel').after(inspector);
+}
+arrangeSatelliteInspector();
+satelliteMobileLayout.addEventListener('change', arrangeSatelliteInspector);
+
 const clock = new SceneClock();
 let observatory: Observatory | undefined;
 let currentView: View = 'overview', currentBody: BodyId = 'earth';
@@ -723,4 +733,4 @@ void fetchSatelliteData();
 $('#retry').onclick = () => { void start(); };
 const ticker = setInterval(updateReadouts, 250);
 updateReadouts(); void start();
-if (import.meta.hot) import.meta.hot.dispose(() => { clearInterval(ticker); window.removeEventListener('popstate', readHash); window.removeEventListener('keydown', onKeyDown); modelPreview?.dispose(); observatory?.dispose(); disposeSatelliteModels(); });
+if (import.meta.hot) import.meta.hot.dispose(() => { clearInterval(ticker); satelliteMobileLayout.removeEventListener('change', arrangeSatelliteInspector); window.removeEventListener('popstate', readHash); window.removeEventListener('keydown', onKeyDown); modelPreview?.dispose(); observatory?.dispose(); disposeSatelliteModels(); });

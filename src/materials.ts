@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu';
-import { uniform, texture, uv, vec3, vec4, color, mix, normalWorldGeometry, positionWorld, cameraPosition, modelPosition, output, bumpMap, max, wgslFn, float, positionLocal, normalLocal } from 'three/tsl';
+import { uniform, texture, uv, vec3, vec4, color, mix, normalWorldGeometry, positionWorld, cameraPosition, modelPosition, output, bumpMap, max, wgslFn, float } from 'three/tsl';
 import type { BodyId } from './astronomy';
 
 // A normalized single-scattering integrator. Distances are in body radii.
@@ -52,7 +52,6 @@ export interface PlanetTextures {
   day: THREE.Texture;
   night?: THREE.Texture;
   packed?: THREE.Texture;
-  height?: THREE.Texture;
 }
 
 export function planetMaterials(id: BodyId, maps: PlanetTextures, webgpu: boolean) {
@@ -80,10 +79,8 @@ export function planetMaterials(id: BodyId, maps: PlanetTextures, webgpu: boolea
     const twilight = color('#9b4520').mul(facing.add(0.035).abs().mul(-18).exp()).mul(0.05);
     const limbHaze = color('#397dc0').mul(rim.pow(3)).mul(facing.smoothstep(-0.3, 0.6)).mul(0.32);
     litSurface = vec4(output.rgb.add(night.mul(daylight.oneMinus())).add(twilight).add(limbHaze), output.a);
-  } else if (id === 'moon' && maps.height) {
-    material.normalNode = bumpMap(texture(maps.height).r, relief.mul(0.014));
-    material.positionNode = positionLocal.add(normalLocal.mul(texture(maps.height).r.sub(0.5).mul(0.01).mul(relief)));
   }
+  // Moon and Mars normals and elevations come from worker-built terrain geometry.
 
   // Full-light inspection uses the surface map without changing the scene clock or Sun geometry.
   material.outputNode = vec4(mix(litSurface.rgb, material.colorNode, unlit), litSurface.a);

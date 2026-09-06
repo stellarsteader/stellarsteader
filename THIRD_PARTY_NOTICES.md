@@ -26,11 +26,11 @@ Earth day, night, and packed elevation/roughness/cloud textures are distributed 
 
 ## NASA Scientific Visualization Studio
 
-Lunar color and displacement: CGI Moon Kit, Ernie Wright, NASA Scientific Visualization Studio. Source imagery/elevation from LRO, LROC and LOLA teams.
+Lunar color: CGI Moon Kit, Ernie Wright, NASA Scientific Visualization Studio. Source imagery/elevation from LRO, LROC and LOLA teams.
 
 Source: https://svs.gsfc.nasa.gov/4720/
 
-The 2019 lunar color TIFF is converted to WebP. The unsigned elevation TIFF is normalized and converted to grayscale PNG for illustrative relief. These prepared assets are not scientific measurement products.
+The 2019 lunar color TIFF is converted to WebP for the Earth–Moon preview. Observatory elevations use the measured terrain sources described below.
 
 ## Three.js
 
@@ -117,3 +117,14 @@ License: [Creative Commons Attribution-ShareAlike 4.0 International](https://cre
 `src/data/stars.json` is an adapted subset, distributed under the same CC BY-SA 4.0 license: 8,920 non-Solar entries with apparent V magnitude ≤ 6.5, retaining HYG ID, J2000 right ascension in hours, declination in degrees, V magnitude, and B−V color index (null when absent). Rebuild with `python3 scripts/build-stars.py /path/to/hygdata_v41.csv`.
 
 Rendering rotates the fixed J2000 coordinates into the orbit scene's J2000 ecliptic frame. Brightness is compressed for display and B−V maps to an approximate color palette. The sky has no proper-motion, parallax, or observer-dependent aberration correction. No endorsement is implied.
+
+## Moon and Mars 3D terrain
+
+- Lunar elevations: NASA LRO / LOLA science team, `LDEM_64`, version 3.1 (2019), [PDS archive and label](https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/cylindrical/img/ldem_64.lbl). Source: 23,040 × 11,520 signed little-endian half-meter samples relative to a 1,737.4 km sphere.
+- Martian elevations: NASA MGS / MOLA science team, `MEGT90N000FB`, version 2.0 (2003), [PDS archive and label](https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg032/megt90n000fb.lbl). Source: 11,520 × 5,760 signed big-endian meter samples relative to the GMM3 areoid. Cells without observations contain interpolation.
+- Observatory color at every zoom level: Solar System Scope / INOVE, [8K Moon and Mars maps](https://www.solarsystemscope.com/textures/), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Converted to WebP, quality 94. These reference maps include baked lighting and are not calibrated, shadow-free albedo measurements.
+- Derived assets in `public/terrain/`: a 1,024 × 512 base elevation grid and 32 tiles covering an 8,192 × 4,096 grid per body, with inclusive shared edge samples. Source longitudes were shifted from 0–360° E to −180–180° E; elevations were bilinearly resampled, rounded to meters, delta-encoded by row, and losslessly gzip-compressed. Source raster SHA-256 values and datum descriptions are in each `manifest.json`.
+- Lunar ground sampling is approximately 1.33 km at the equator; Mars sampling is approximately 2.60 km. Sampling is finer east–west toward the poles; source measurement coverage and interpolation limit actual resolving power. Lunar raw source sampling is about 474 m; Martian source sampling about 1.85 km. The renderer does not invent finer terrain.
+- Rendered relief uses measured vertical scale. Lunar radii use the LOLA reference sphere; Martian areoid-relative topography is added to the existing display sphere, not a reconstructed areoid/ellipsoid. Mesh normals follow elevations; terrain does not cast shadows onto other terrain. Edge skirts and temporary coarse-to-fine blends are rendering aids, not geophysical features.
+
+Rebuild with `npm run terrain:fetch` followed by `npm run terrain:build`. Downloads are cached in `.cache/terrain/`; the application serves prepared assets locally and does not contact NASA/PDS at runtime.

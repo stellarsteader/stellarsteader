@@ -45,7 +45,7 @@ export class SurfaceMap {
   }
   invalidate() { this.lastSelection = -Infinity; }
 
-  update(surface: Object3D, camera: Camera, width: number, height: number, radiusKm: number): MapFrame {
+  update(surface: Object3D, camera: Camera, width: number, height: number, radiusKm: number, elevation?: (latitude: number, longitude: number) => number): MapFrame {
     this.localCamera.copy(camera.position); surface.worldToLocal(this.localCamera);
     const altitudeRatio = Math.max(0, this.localCamera.length() - 1);
     const level = mapLevel(altitudeRatio);
@@ -56,12 +56,13 @@ export class SurfaceMap {
     const top = mobile ? 16 : height <= 800 ? 125 : 140;
     const bottom = mobile ? height - 60 : height - 145;
     const project = (entry: { place: Place; point: Vector3 }) => {
-      const p = entry.point.clone().multiplyScalar(1.002).applyMatrix4(this.matrix);
+      const radius = 1 + (elevation?.(entry.place.latitude, entry.place.longitude) ?? 0) / (radiusKm * 1000);
+      const p = entry.point.clone().multiplyScalar(radius + (elevation ? 0.0002 : 0.002)).applyMatrix4(this.matrix);
       const x = (p.x + 1) * width / 2, y = (1 - p.y) * height / 2;
       const labelWidth = Math.min(205, entry.place.name.length * 6.4 + 24);
       // Horizon test on a sphere, not just "front hemisphere". This also hides
       // far-side labels at close range where most of the hemisphere is occluded.
-      const visible = entry.point.dot(this.localCamera) > 1.015 && p.z > -1 && p.z < 1
+      const visible = entry.point.dot(this.localCamera) > radius + (elevation ? 0.0001 : 0.015) && p.z > -1 && p.z < 1
         && x - labelWidth / 2 > left && x + labelWidth / 2 < right && y > top && y < bottom;
       return { x, y, visible, width: labelWidth, height: 25 };
     };

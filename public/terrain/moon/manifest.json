@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "body": "moon",
+  "width": 8192,
+  "height": 4096,
+  "tileSize": 1024,
+  "baseWidth": 1024,
+  "baseHeight": 512,
+  "encoding": "gzip int16 little-endian row deltas in meters, first sample absolute, inclusive grid edges",
+  "longitude": "-180 to 180 east",
+  "latitude": "90 to -90",
+  "verticalDatum": "LOLA 1737.4 km reference sphere",
+  "source": "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/cylindrical/img/ldem_64.img",
+  "sourceSha256": "1c4958699d4cffd7e777d51421b6044bba300aa0bef286a544309efb082cdbd6"
+}

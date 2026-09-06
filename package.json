@@ -9,6 +9,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --import tsx --test src/**/*.test.ts",
     "assets": "node scripts/fetch-assets.mjs",
+    "terrain:build": "node scripts/build-terrain.mjs",
+    "terrain:fetch": "node scripts/fetch-terrain.mjs",
     "satellites:fetch": "node scripts/fetch-satellites.mjs",
     "places:fetch": "node scripts/fetch-places.mjs",
     "satellites:earth:fetch": "node scripts/fetch-earth-satellites.mjs",

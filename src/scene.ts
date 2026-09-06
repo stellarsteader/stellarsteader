@@ -1,6 +1,8 @@
 import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { planetMaterials, type PlanetTextures } from './materials';
+import { PlanetTerrain } from './terrain';
+import { loadSurfaceTexture } from './surface-texture';
 import { bodies, physicalState, orbitPosition, type BodyId, type SceneClock } from './astronomy';
 import { OrbitLine } from './orbit-line';
 import { createStarBackground } from './star-background';
@@ -20,6 +22,7 @@ type Planet = {
   clouds?: THREE.Mesh;
   grid: THREE.Group;
   materials: ReturnType<typeof planetMaterials>;
+  textures: PlanetTextures;
   presentation: THREE.Quaternion;
   basePresentation: THREE.Quaternion;
   orientation: THREE.Quaternion;
@@ -69,6 +72,7 @@ export class Observatory {
   private frameAnchor = performance.now();
   private fps = 0;
   private ownedTextures: THREE.Texture[] = [];
+  private terrains = new Map<BodyId, PlanetTerrain>();
   private transition?: { start: number; duration: number; from: THREE.Vector3; to: THREE.Vector3; fromTarget: THREE.Vector3; toTarget: THREE.Vector3 };
   private raycaster = new THREE.Raycaster();
   private pointerStart = new THREE.Vector2();
@@ -78,7 +82,6 @@ export class Observatory {
   private resizeObserver: ResizeObserver;
   private hidden = false;
   private autoPixelRatio = 1;
-  private slowFrames = 0;
   view: View = 'overview';
   selected: BodyId = 'earth';
   quality: Quality = 'auto';
@@ -139,23 +142,21 @@ export class Observatory {
   async init(onProgress: (value: number, label: string) => void) {
     await this.renderer.init();
     const webgpu = (this.renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend === true;
-    const loader = new THREE.TextureLoader();
     let loaded = 0;
     const load = async (name: string, srgb = true) => {
-      const map = await loader.loadAsync(`/textures/${name}`);
-      map.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-      map.anisotropy = Math.min(8, this.renderer.getMaxAnisotropy());
-      map.wrapS = THREE.RepeatWrapping;
-      onProgress(++loaded / 6, 'Preparing planetary surfaces');
+      const map = await loadSurfaceTexture(name.startsWith('/') ? name : `/textures/${name}`, srgb, this.renderer.getMaxAnisotropy());
+      onProgress(++loaded / 5, 'Preparing planetary surfaces');
       return map;
     };
-    const [earthDay, earthNight, earthPacked, moonDay, moonHeight, marsDay] = await Promise.all([
+    const [earthDay, earthNight, earthPacked, moonDay, marsDay] = await Promise.all([
       load('earth-day.webp'), load('earth-night.webp'), load('earth-packed.webp', false),
-      load('moon-day.webp'), load('moon-height.png', false), load('mars-day.webp'),
+      load('/terrain/moon/color.webp'), load('/terrain/mars/color.webp'),
     ]);
     this.createPlanet('earth', { day: earthDay, night: earthNight, packed: earthPacked }, webgpu, 1.92);
-    this.createPlanet('moon', { day: moonDay, height: moonHeight }, webgpu, 1.38);
+    this.createPlanet('moon', { day: moonDay }, webgpu, 1.38);
     this.createPlanet('mars', { day: marsDay }, webgpu, 1.72);
+    onProgress(1, 'Building lunar and Martian terrain');
+    await Promise.all([...this.terrains.values()].map(terrain => terrain.init()));
     this.layout();
     this.updateGeometry();
     this.setView('overview', 'earth', false);
@@ -190,8 +191,9 @@ export class Observatory {
     const state = physicalState(id, this.clock.now());
     const presentation = this.presentationFrame(state.sun, state.north);
     this.ownedTextures.push(...Object.values(maps).filter((map): map is THREE.Texture => map instanceof THREE.Texture));
-    this.planets.set(id, { root, surface, atmosphere, clouds, grid, materials, presentation, basePresentation: presentation.clone(), orientation: state.orientation.clone(), size });
+    this.planets.set(id, { root, surface, atmosphere, clouds, grid, materials, textures: maps, presentation, basePresentation: presentation.clone(), orientation: state.orientation.clone(), size });
     this.scene.add(root);
+    if (id !== 'earth') this.terrains.set(id, new PlanetTerrain(id, surface));
     const orbitSurface = orbitMaterial(id, maps.day, maps.night);
     this.orbitMaterials.set(id, orbitSurface);
     const marker = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 40), orbitSurface.material);
@@ -276,6 +278,7 @@ export class Observatory {
     this.controls.enabled = view !== 'overview';
     this.camera.clearViewOffset();
     this.camera.far = 1000;
+    this.camera.near = 0.05;
     this.planets.forEach((p, id) => { p.root.visible = view === 'overview' || id === selected; });
     let target = new THREE.Vector3();
     let destination = new THREE.Vector3();
@@ -290,7 +293,7 @@ export class Observatory {
       const planet = this.planets.get(selected)!;
       target.copy(planet.root.position);
       destination.copy(target).add(new THREE.Vector3(0.15, 0.12, 1).normalize().multiplyScalar(planet.size * detailDistanceRatio(this.host.clientWidth, this.host.clientHeight)));
-      this.controls.minDistance = planet.size * 1.08;
+      this.controls.minDistance = planet.size * (selected === 'earth' ? 1.08 : 1.012);
       this.controls.maxDistance = planet.size * 14;
       this.surfaceMap.setPlaces(this.placeCatalog.filter(place => place.body === selected));
     } else if (view === 'satellites') {
@@ -386,7 +389,7 @@ export class Observatory {
     const segments = quality === 'ultra' ? 320 : quality === 'high' ? 256 : 192;
     const old = this.geometry;
     this.geometry = new THREE.SphereGeometry(1, segments, segments / 2);
-    this.planets.forEach(p => { p.surface.geometry = this.geometry; if (p.clouds) p.clouds.geometry = this.geometry; });
+    this.planets.forEach((p, id) => { if (id === 'earth') p.surface.geometry = this.geometry; if (p.clouds) p.clouds.geometry = this.geometry; });
     old.dispose(); this.resize();
   }
   setLayer(layer: 'atmosphere' | 'clouds' | 'grid' | 'relief', enabled: boolean) {
@@ -406,7 +409,11 @@ export class Observatory {
     this.placeFlight = undefined;
     this.resumeRotationAt = performance.now() + 2500;
     this.host.dataset.camera = 'settled';
-    const offset = this.camera.position.clone().sub(this.controls.target).multiplyScalar(direction > 0 ? 0.82 : 1.22);
+    const offset = this.camera.position.clone().sub(this.controls.target);
+    if (this.view === 'detail' && this.selected !== 'earth') {
+      const radius = this.planets.get(this.selected)!.size;
+      offset.setLength(radius + (offset.length() - radius) * (direction > 0 ? 0.72 : 1.4));
+    } else offset.multiplyScalar(direction > 0 ? 0.82 : 1.22);
     offset.setLength(THREE.MathUtils.clamp(offset.length(), this.controls.minDistance, this.controls.maxDistance));
     this.camera.position.copy(this.controls.target).add(offset); this.controls.update();
   }
@@ -500,10 +507,27 @@ export class Observatory {
     this.controls.autoRotate = rotating && (this.view === 'detail' || this.view === 'satellites');
     this.controls.autoRotateSpeed = (1 / 6) * (this.view === 'detail' ? this.controls.rotateSpeed / 0.45 : 1);
     this.controls.update(delta);
+    const terrainView = this.view === 'detail' && this.selected !== 'earth';
+    if (terrainView) {
+      const planet = this.planets.get(this.selected)!;
+      const altitude = this.camera.position.distanceTo(planet.root.position) - planet.size;
+      this.camera.near = Math.max(0.0002, Math.min(0.05, altitude * 0.08));
+      this.camera.updateProjectionMatrix();
+      this.controls.zoomSpeed = Math.max(0.08, Math.min(0.6, altitude / planet.size));
+    } else this.controls.zoomSpeed = 0.6;
+    this.scene.updateMatrixWorld(true);
+    // Share the upload allowance across both worlds during the Home transition.
+    let terrainUploads = 4;
+    this.terrains.forEach((terrain, id) => {
+      const before = terrain.stats.uploadedPatches;
+      terrain.update(this.view !== 'orbit' && this.planets.get(id)!.root.visible, this.camera, this.host.clientHeight, this.quality, this.planets.get(id)!.materials.relief.value > 0, terrainView && id === this.selected, terrainUploads);
+      terrainUploads -= terrain.stats.uploadedPatches - before;
+    });
+    this.host.dataset.terrain = terrainView ? this.terrains.get(this.selected)!.status : 'inactive';
     if (this.view === 'satellites') this.satellites.update(this.clock.now(), this.planets.get(this.selected)!.presentation, this.clock.rate, this.camera, this.host.clientHeight);
     if (this.view === 'orbit') this.orbitStars.position.copy(this.camera.position);
     this.renderer.render(this.view === 'orbit' ? this.orbitScene : this.scene, this.camera);
-    if (this.view === 'detail' && this.surfaceMap.enabled) this.onMapFrame?.(this.surfaceMap.update(this.planets.get(this.selected)!.surface, this.camera, this.host.clientWidth, this.host.clientHeight, bodies[this.selected].radius));
+    if (this.view === 'detail' && this.surfaceMap.enabled) this.onMapFrame?.(this.surfaceMap.update(this.planets.get(this.selected)!.surface, this.camera, this.host.clientWidth, this.host.clientHeight, bodies[this.selected].radius, (this.planets.get(this.selected)!.materials.relief.value > 0 && this.terrains.get(this.selected)?.field) ? ((lat, lon) => this.terrains.get(this.selected)!.field!.height((lon + 180) / 360, (90 - lat) / 180)) : undefined));
     if (this.view === 'satellites') this.onSatelliteLabels?.(this.satellites.labels(this.camera, this.host.clientWidth, this.host.clientHeight));
     if (this.view === 'orbit') {
       const labels: { id: string; x: number; y: number; visible: boolean }[] = [...this.orbitMarkers].map(([id, marker]) => {
@@ -523,14 +547,6 @@ export class Observatory {
     if (now - this.frameAnchor > 1200) {
       this.fps = Math.round(this.frameCount / ((now - this.frameAnchor) / 1000));
       this.frameAnchor = now; this.frameCount = 0;
-      if (this.quality === 'auto' && !this.transition) {
-        this.slowFrames = this.fps < 42 ? this.slowFrames + 1 : 0;
-        if (this.slowFrames >= 3 && this.autoPixelRatio > 0.8) {
-          this.autoPixelRatio = Math.max(0.8, this.autoPixelRatio - 0.15);
-          this.renderer.setPixelRatio(this.autoPixelRatio);
-          this.slowFrames = 0;
-        }
-      }
       this.onStats?.({ fps: this.fps, backend: (this.renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? 'WebGPU' : 'WebGL 2', triangles: this.renderer.info.render.triangles, resolution: `${this.renderer.domElement.width} × ${this.renderer.domElement.height}` });
     }
   };
@@ -538,7 +554,18 @@ export class Observatory {
   private hit(event: PointerEvent) {
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.raycaster.setFromCamera(new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1), this.camera);
-    return this.raycaster.intersectObjects([...this.planets.values()].map(p => p.surface), false)[0]?.object.userData.body as BodyId | undefined;
+    // Home selects an entire body. Testing every terrain triangle on each
+    // pointer event scales with detail left over from the observatory.
+    const sphere = new THREE.Sphere(), point = new THREE.Vector3();
+    let selected: BodyId | undefined, nearest = Infinity;
+    for (const [id, planet] of this.planets) {
+      if (!planet.root.visible) continue;
+      planet.root.getWorldPosition(sphere.center); sphere.radius = planet.size;
+      if (!this.raycaster.ray.intersectSphere(sphere, point)) continue;
+      const distance = point.distanceToSquared(this.raycaster.ray.origin);
+      if (distance < nearest) { nearest = distance; selected = id; }
+    }
+    return selected;
   }
   private pointerDown = (e: PointerEvent) => this.pointerStart.set(e.clientX, e.clientY);
   private pointerUp = (e: PointerEvent) => {
@@ -564,8 +591,10 @@ export class Observatory {
   private visibilityChange = () => { this.hidden = document.hidden; this.lastFrame = 0; this.frameAnchor = performance.now(); this.frameCount = 0; };
 
   dispose() {
+    this.terrains.forEach(terrain => terrain.dispose());
     this.satellites.dispose();
-    this.disposed = true; this.worker.terminate(); this.resizeObserver.disconnect();
+    this.disposed = true;
+    this.worker.terminate(); this.resizeObserver.disconnect();
     this.renderer.setAnimationLoop(null); this.controls.dispose();
     document.removeEventListener('visibilitychange', this.visibilityChange);
     this.renderer.domElement.removeEventListener('pointerdown', this.pointerDown);

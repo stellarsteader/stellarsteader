@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "body": "mars",
+  "width": 8192,
+  "height": 4096,
+  "tileSize": 1024,
+  "baseWidth": 1024,
+  "baseHeight": 512,
+  "encoding": "gzip int16 little-endian row deltas in meters, first sample absolute, inclusive grid edges",
+  "longitude": "-180 to 180 east",
+  "latitude": "90 to -90",
+  "verticalDatum": "MOLA GMM3 areoid; relief mapped onto display sphere",
+  "source": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg032/megt90n000fb.img",
+  "sourceSha256": "09ae1c0956afcdc869bd82c55993849f67c16ef0efe73f38cb1ea204c186ad8b"
+}

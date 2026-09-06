@@ -1,0 +1,90 @@
+<!doctype html><meta charset="utf-8"><title>Terrain rendering regression</title>
+<style>body{background:#101318;color:#ddd;font:14px monospace}#scene{width:800px;height:600px}li{margin:8px}canvas{display:block}</style>
+<h1>Terrain rendering regression</h1><p id="status">Running…</p><ul id="results"></ul><div id="scene"></div>
+<script type="module">
+import * as THREE from 'three/webgpu';
+import { Observatory } from '../src/scene.ts';
+import { SceneClock } from '../src/astronomy.ts';
+import { loadSurfaceTexture } from '../src/surface-texture.ts';
+import { terrainGeometry } from '../src/terrain.ts';
+import { TerrainHeights, terrainPatches, patchKey } from '../src/terrain-data.ts';
+const host=document.querySelector('#scene'), app=new Observatory(host,new SceneClock());
+const results=document.querySelector('#results');
+function check(name,pass) { const li=document.createElement('li');li.textContent=`${pass?'PASS':'FAIL'} — ${name}`;results.append(li);if(!pass)throw new Error(name); }
+const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
+async function until(condition) {const end=performance.now()+25000;while(!condition()){if(performance.now()>end)throw new Error('Timed out waiting for terrain');await frame();}}
+try {
+ await app.init(()=>{});app.setRotationEnabled(false);
+ const vertex=(mesh,i)=>mesh.getVertexPosition(i,new THREE.Vector3());
+ let maxUploaded=0;
+ for(const terrain of app.terrains.values()){
+  const update=terrain.update.bind(terrain);
+  terrain.update=(...args)=>{const before=terrain.stats.uploadedPatches;update(...args);maxUploaded=Math.max(maxUploaded,terrain.stats.uploadedPatches-before);};
+ }
+ // Read back four geographic quadrants using the exact production texture loader.
+ const orientationMap=await loadSurfaceTexture('/tests/fixtures/terrain-orientation.svg');
+ const field=new TerrainHeights('moon',new Int16Array(1025*513));
+ const material=new THREE.MeshBasicNodeMaterial({map:orientationMap,toneMapped:false});
+ const scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(10,1,.01,10);
+ const target=new THREE.RenderTarget(64,64);
+ for(const [u,v,expected] of [[.25,.25,[255,0,0]],[.75,.25,[0,255,0]],[.25,.75,[0,0,255]],[.75,.75,[255,255,0]]]) {
+  const mesh=new THREE.Mesh(terrainGeometry(field,{u:u-.04,v:v-.04,width:.08,height:.08,level:2},false),material);
+  scene.add(mesh);camera.position.copy(field.point(u,v)).multiplyScalar(1.2);camera.lookAt(0,0,0);
+  app.renderer.setRenderTarget(target);app.renderer.render(scene,camera);
+  const pixels=await app.renderer.readRenderTargetPixelsAsync(target,32,32,1,1);
+  check(`Texture latitude/longitude quadrant ${u}, ${v} stays aligned`,expected.every((value,i)=>Math.abs(pixels[i]-value)<10));
+  scene.remove(mesh);mesh.geometry.dispose();
+ }
+ app.renderer.setRenderTarget(null);target.dispose();material.dispose();orientationMap.dispose();
+ for(const body of ['moon','mars']) {
+  const planet=app.planets.get(body);
+  const terrain=planet.surface.children.find(child=>child.userData.terrain===body);
+  const color=planet.textures.day, image=color.image;
+  check(`${body}: terrain exists before opening detail`,terrain.children.length>0 && planet.surface.geometry.getAttribute('position').count===0);
+  check(`${body}: canonical color loads once as an unflipped HTML image`,image instanceof HTMLImageElement && image.src.includes(`/terrain/${body}/color.webp`) && color.flipY);
+  app.setView('detail',body,false);
+  const direction=new THREE.Vector3(-.65,.4,.9).normalize();
+  app.camera.position.copy(planet.root.position).addScaledVector(direction,planet.size*1.15);
+  app.controls.update();
+  await until(()=>terrain.children.length>8 && !terrain.userData.refining && host.dataset.terrain==='ready');
+  const expected=terrainPatches(planet.surface.worldToLocal(app.camera.position.clone()),host.clientHeight,app.camera.fov,app.quality).map(patchKey).sort();
+  check(`${body}: worker converges to the unchanged screen-space detail target`,JSON.stringify(terrain.children.map(mesh=>patchKey(mesh.userData.patch)).sort())===JSON.stringify(expected));
+  // A settled camera may check tile retries, but must reuse every GPU geometry.
+  const stable=new Set(terrain.children.map(mesh=>mesh.geometry.uuid));
+  const untilStable=performance.now()+1300;while(performance.now()<untilStable)await frame();
+  check(`${body}: a settled view reuses all GPU terrain buffers`,terrain.children.every(mesh=>stable.has(mesh.geometry.uuid)) && stable.size===terrain.children.length);
+  const first=terrain.children[0].geometry.getAttribute('position');
+  check(`${body}: adaptive terrain meshes replace the sphere`,terrain.children.length>8 && planet.surface.geometry.getAttribute('position').count===0);
+  let displaced=false;
+  for(let i=0;i<Math.min(first.count,1089);i++) if(Math.abs(new THREE.Vector3().fromBufferAttribute(first,i).length()-1)>.00002) displaced=true;
+  check(`${body}: elevations displace actual GPU vertex buffers`,displaced);
+  const target=new THREE.RenderTarget(128,128);app.renderer.setRenderTarget(target);app.renderer.render(app.scene,app.camera);
+  const pixels=await app.renderer.readRenderTargetPixelsAsync(target,0,0,128,128);app.renderer.setRenderTarget(null);target.dispose();
+  check(`${body}: GPU draws illuminated terrain pixels`,pixels.some((v,i)=>i%4!==3 && v>60));
+  app.setLayer('relief',false);
+  await until(()=>terrain.children.every(mesh=>{const p=mesh.geometry.getAttribute('position');return Math.abs(vertex(mesh,500).length()-1)<1e-6;}));
+  check(`${body}: relief toggle restores spherical vertices`,true);
+  app.setLayer('relief',true);
+  for(let i=0;i<30;i++)app.zoom(1);
+  await frame();
+  check(`${body}: zoom preserves the same texture and image`,planet.textures.day===color && color.image===image);
+  check(`${body}: closest zoom stays above maximum measured elevation`,app.camera.position.distanceTo(planet.root.position)>planet.size*1.01);
+  check(`${body}: near clipping adapts for close terrain`,app.camera.near<.01);
+  app.setView('overview','earth',false);await frame();
+  check(`${body}: overview retains the same terrain surface`,planet.surface.geometry.getAttribute('position').count===0 && terrain.visible && terrain.children.length>0);
+  app.setQuality('high');await frame();
+  check(`${body}: quality changes cannot restore a legacy sphere`,planet.surface.geometry.getAttribute('position').count===0);
+ }
+ check('Terrain uploads never exceed four replacement patches per body per frame',maxUploaded<=4);
+ // Rapid moves exercise stale worker replies, partial commits and relief changes.
+ for(let i=0;i<20;i++){app.setView(i%3===0?'overview':'detail',i%2?'moon':'mars',false);app.setLayer('relief',i%2===0);await frame();}
+ app.setView('detail','moon',false);app.setLayer('relief',true);
+ const moon=app.planets.get('moon'), terrain=moon.surface.children.find(child=>child.userData.terrain==='moon');
+ await until(()=>!terrain.userData.refining && terrain.userData.relief===true);
+ check('Rapid view and relief changes recover without worker errors',app.terrains.get('moon').status==='ready' && app.terrains.get('mars').status==='ready');
+ check('Rapid changes leave a complete nonoverlapping globe',Math.abs(terrain.children.reduce((sum,mesh)=>sum+mesh.userData.patch.width*mesh.userData.patch.height,0)-1)<1e-9);
+ document.querySelector('#status').textContent=`PASS — ${results.children.length} checks · ${app.renderer.backend.isWebGPUBackend?'WebGPU':'WebGL 2'}`;
+ document.title='PASS — Terrain rendering';
+ app.renderer.setAnimationLoop(null);
+} catch(error) {document.querySelector('#status').textContent=`FAIL — ${error.message}`;document.title='FAIL — Terrain rendering';}
+</script>

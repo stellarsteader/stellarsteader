@@ -1,0 +1,91 @@
+<!doctype html><meta charset="utf-8"><title>Camera focus regression</title>
+<style>body{background:#101318;color:#ddd;font:14px monospace}#scene{width:800px;height:600px}li{margin:8px}</style>
+<h1>Camera focus regression</h1><p id="status">Running…</p><ul id="results"></ul><div id="scene"></div>
+<script type="module">
+import { Vector3 } from 'three';
+import { Observatory } from '../src/scene.ts';
+import { SceneClock } from '../src/astronomy.ts';
+import { loadSatelliteCatalog, coverage } from '../src/satellites.ts';
+const host=document.querySelector('#scene'), clock=new SceneClock(), app=new Observatory(host,clock);
+const results=document.querySelector('#results');
+function check(name,pass) { const li=document.createElement('li');li.textContent=`${pass?'PASS':'FAIL'} — ${name}`;results.append(li);if(!pass)throw new Error(name); }
+const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
+async function tick() { await frame();app.lastFrame=performance.now()-16;app.animate(); }
+async function until(condition) {const end=performance.now()+25000;while(!condition()){if(performance.now()>end)throw new Error('Timed out waiting for focus');await tick();}}
+const centered=point=>{const p=point.clone().project(app.camera);return Math.hypot(p.x,p.y)<1e-6;};
+const snapshot=()=>({position:app.camera.position.clone(),orientation:app.camera.quaternion.clone(),target:app.controls.target.clone(),fov:app.camera.fov,zoom:app.camera.zoom});
+const unchanged=before=>app.camera.position.distanceTo(before.position)<1e-8 && 1-Math.abs(app.camera.quaternion.dot(before.orientation))<1e-10 && app.controls.target.distanceTo(before.target)<1e-8 && app.camera.fov===before.fov && app.camera.zoom===before.zoom;
+try {
+ await app.init(()=>{});app.renderer.setAnimationLoop(null);app.setRotationEnabled(false);clock.setRate(0);
+ const catalog=(await loadSatelliteCatalog()).satellites;
+ // Use real orbital data, including Earth's instanced worker path and both
+ // non-Earth marker paths, without loading every catalog item into this test.
+ const satellites=['earth','moon','mars'].map(body=>catalog.find(s=>s.parent===body && !s.historical));
+ app.setSatelliteCatalog(satellites);
+ for(const satellite of satellites) {
+  const body=satellite.parent, [start,end]=coverage(satellite);
+  clock.setDate(new Date((start+end)/2));app.lastGeometryUpdate=-Infinity;
+  app.setView('satellites',body,false);app.satellites.select(satellite.id);
+  await tick();
+  await until(()=>app.satellites.selectedWorldPosition());
+  const planet=app.planets.get(body), point=app.satellites.selectedWorldPosition();
+  const outward=point.clone().sub(planet.root.position).normalize();
+  app.camera.position.copy(point).addScaledVector(outward,planet.size*.5);
+  app.camera.lookAt(app.controls.target);app.camera.updateMatrixWorld();
+  const before=app.camera.position.clone(), fov=app.camera.fov, zoom=app.camera.zoom;
+  app.setRotationEnabled(true);app.selectSatellite(satellite.id);
+  check(`${body}: selection preserves exact camera position and lens`,app.camera.position.distanceTo(before)<1e-9 && app.camera.fov===fov && app.camera.zoom===zoom);
+  await tick();
+  check(`${body}: first follow frame does not clamp back to planet zoom`,app.camera.position.distanceTo(before)<1e-5);
+  check(`${body}: satellite is centered and automatic turning stops`,centered(app.satellites.selectedWorldPosition()) && !app.rotationEnabled && !app.controls.autoRotate);
+  const range=app.camera.position.distanceTo(app.controls.target), original=app.controls.target.clone();
+  clock.offset(1/60);app.lastGeometryUpdate=-Infinity;
+  await until(()=>app.controls.target.distanceTo(original)>1e-4);
+  for(let i=0;i<10;i++)await tick();
+  check(`${body}: orbital motion continues with centered satellite and constant zoom`,centered(app.satellites.selectedWorldPosition()) && Math.abs(app.camera.position.distanceTo(app.controls.target)-range)<1e-6);
+  app.resize();await tick();
+  check(`${body}: resize preserves selected-object distance`,Math.abs(app.camera.position.distanceTo(app.controls.target)-range)<1e-6);
+  app.setSatelliteCatalog(satellites);await tick();
+  check(`${body}: catalog refresh preserves selected-object distance`,Math.abs(app.camera.position.distanceTo(app.controls.target)-range)<1e-6);
+  const released=snapshot();app.clearFocus();await tick();
+  check(`${body}: closing satellite details clears selection with identical framing`,!app.focus && !app.satellites.selected && unchanged(released));
+  clock.offset(1/60);app.lastGeometryUpdate=-Infinity;await tick();
+  check(`${body}: closed satellite details no longer track orbital motion`,unchanged(released));
+  app.resize();await tick();
+  check(`${body}: resizing after closing details does not reset zoom`,unchanged(released));
+  const dragRadius=app.camera.position.distanceTo(planet.root.position), oldTarget=app.controls.target.clone();
+  app.controls.rotateLeft(.35);app.controls.rotateUp(.15);
+  for(let i=0;i<100;i++)await tick();
+  check(`${body}: drag after closing orbits the planet at constant altitude`,Math.abs(app.camera.position.distanceTo(planet.root.position)-dragRadius)<1e-6 && app.camera.position.distanceTo(released.position)>planet.size*.01);
+  check(`${body}: drag after closing no longer centers the old satellite pivot`,!centered(oldTarget));
+  const beforeZoom=app.camera.position.distanceTo(planet.root.position);app.zoom(1);await tick();
+  check(`${body}: released zoom buttons move inward around the planet`,app.camera.position.distanceTo(planet.root.position)<beforeZoom && app.camera.fov===released.fov && app.camera.zoom===released.zoom);
+
+ }
+ for(const body of ['earth','moon','mars']) {
+  app.setRotationEnabled(false);app.setView('detail',body,false);
+  const place={id:`test-${body}`,name:'Focus test',body,latitude:24,longitude:37,level:3,kind:'Crater'};
+  app.focusPlace(place);await until(()=>!app.placeFlight && app.focus?.acquired);
+  check(`${body}: selected surface point is centered after the flight`,centered(app.placeWorldPosition(place,new Vector3())));
+  const range=app.camera.position.distanceTo(app.controls.target), orientation=app.camera.quaternion.clone();
+  app.setRotationEnabled(true);app.resumeRotationAt=0;
+  for(let i=0;i<30;i++)await tick();
+  check(`${body}: automatic turning keeps the location centered and distance fixed`,centered(app.placeWorldPosition(place,new Vector3())) && Math.abs(app.camera.position.distanceTo(app.controls.target)-range)<1e-6 && app.camera.quaternion.angleTo(orientation)>1e-4);
+  app.setRotationEnabled(false);app.zoom(1);await tick();
+  check(`${body}: zoom still works around the selected location`,centered(app.placeWorldPosition(place,new Vector3())) && app.camera.position.distanceTo(app.controls.target)<range);
+  const followRange=app.camera.position.distanceTo(app.controls.target), radius=app.camera.position.distanceTo(app.planets.get(body).root.position);
+  clock.offset(12);app.lastGeometryUpdate=-Infinity;await tick();
+  check(`${body}: advancing time follows the rotating surface without changing altitude`,centered(app.placeWorldPosition(place,new Vector3())) && Math.abs(app.camera.position.distanceTo(app.controls.target)-followRange)<1e-6 && Math.abs(app.camera.position.distanceTo(app.planets.get(body).root.position)-radius)<1e-6);
+  const released=snapshot();app.clearFocus();await tick();
+  check(`${body}: closing location details clears focus with identical framing`,!app.focus && !app.surfaceMap.selected && unchanged(released));
+  app.setRotationEnabled(true);app.resumeRotationAt=0;
+  for(let i=0;i<30;i++)await tick();
+  check(`${body}: released auto-turn lets the old location move away from center without zooming`,!centered(app.placeWorldPosition(place,new Vector3())) && Math.abs(app.camera.position.distanceTo(app.controls.target)-followRange)<1e-6);
+  app.setView('detail',body,false);await tick();
+  check(`${body}: resetting the view restores the planet pivot`,!app.focus && app.controls.target.distanceTo(app.planets.get(body).root.position)<1e-9);
+ }
+ document.querySelector('#status').textContent=`PASS — ${results.children.length} checks · ${app.renderer.backend.isWebGPUBackend?'WebGPU':'WebGL 2'}`;
+ document.title='PASS — Camera focus';
+} catch(error) {document.querySelector('#status').textContent=`FAIL — ${error.message}`;document.title='FAIL — Camera focus';}
+app.renderer.setAnimationLoop(null);
+</script>

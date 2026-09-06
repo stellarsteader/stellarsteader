@@ -17,7 +17,8 @@
 [data-view=detail] .view-tools > span { width: 1px; height: 24px; margin: 5px; }
 [data-view=detail] .dawn-button { right: auto; left: calc(4.2% + 145px); bottom: 29px; height: 43px; font-size: 11px; }
 [data-view=detail] .coordinate-readout { left: 4.2%; right: auto; bottom: 88px; align-items: flex-start; font-size: 9px; }
-.map-toggle { position: absolute; right: 4.2%; top: 12px; height: 42px; padding: 0 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; border: 1px solid #ffffff33; color: #dedede; background: #000; pointer-events: auto; }
+.map-controls { position: absolute; right: 4.2%; top: 12px; display: flex; gap: 8px; }
+.map-toggle { height: 42px; padding: 0 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; border: 1px solid #ffffff33; color: #dedede; background: #000; pointer-events: auto; }
 .map-toggle:hover, .map-toggle[aria-expanded=true] { background: #202020; border-color: #ffffff66; color: #fff; }
 .map-toggle svg { width: 18px; height: 18px; }
 .map-panel { position: absolute; top: 72px; right: 4.2%; bottom: 25px; width: clamp(260px, 22vw, 310px); --map-panel-padding: 20px; display: flex; flex-direction: column; gap: 12px; background: transparent; pointer-events: none; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #596f67 transparent; }
@@ -55,7 +56,7 @@
   .back-button { margin-bottom: 20px; }
   .detail-heading h1 { font-size: 52px; }
   .detail-facts { margin: 25px 0; gap: 18px; }
-  .map-toggle { top: 8px; }
+  .map-controls { top: 8px; }
   .map-panel { top: 62px; bottom: 20px; --map-panel-padding: 17px; }
 }
 @media(max-width:760px) {
@@ -72,7 +73,8 @@
   [data-view=detail] .view-tools { left: auto; right: 5%; bottom: auto; top: 35%; flex-direction: column; }
   [data-view=detail] .view-tools > span { width: 24px; height: 1px; margin: 5px; }
   [data-view=detail] .dawn-button { left: auto; right: 7%; bottom: 15px; font-size: 9px; height: 31px; padding: 6px 8px; }
-  .map-toggle { top: 55px; right: 7%; height: 36px; font-size: 11px; padding: 0 11px; }
+  .map-controls { top: 55px; right: 7%; }
+  .map-toggle { height: 36px; font-size: 11px; padding: 0 11px; }
   .map-panel { top: 320px; bottom: 0; right: 5%; width: 90%; --map-panel-padding: 16px; z-index: 6; }
   .map-search { margin-bottom: 16px; }
   [data-view=detail][data-map-open=true] .detail-facts, [data-view=detail][data-map-open=true] .detail-actions, [data-view=detail][data-map-open=true] .detail-switcher, [data-view=detail][data-map-open=true] .dawn-button { visibility: hidden; }

@@ -1,6 +1,9 @@
 import './style.css';
 import './satellites.css';
 import './map.css';
+import './events.css';
+import { EventPanel, eventPanelMarkup } from './event-panel';
+import { eventPlace, eventSpots, eventCategories, type EventSpot } from './event-spots';
 import './orbits.css';
 import './mobile.css';
 import { placeLocalTime } from './place-time';
@@ -69,10 +72,14 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <button class="secondary-button" id="detail-orbit">Explore orbit ${icons.diagonal}</button></div>
       </section>
 
-      <button id="show-map" class="map-toggle" aria-expanded="false" aria-controls="map-panel" hidden>${icons.map}<span>Show map</span></button>
+      <div class="map-controls" hidden>
+        <button id="show-map" class="map-toggle" aria-expanded="false" aria-controls="map-panel">${icons.map}<span>Show map</span></button>
+        <button id="show-events" class="map-toggle" aria-expanded="false" aria-controls="map-panel"><span>Show events</span></button>
+      </div>
       <aside id="map-panel" class="map-panel" aria-label="Map locations" hidden>
+        ${eventPanelMarkup}
         <section class="place-detail" id="selected-place" hidden aria-labelledby="selected-place-name"><button id="close-place-detail" class="place-detail-close" aria-label="Close location details" title="Close location details">${icons.close}</button><p class="map-section-title">Selected location</p><h3 id="selected-place-name"></h3><p id="selected-place-type"></p><p id="selected-place-coordinates"></p><p id="selected-place-diameter"></p><div class="place-local-time" id="selected-place-clock"><span id="selected-place-time-label">Local time</span><strong id="selected-place-time"></strong><small id="selected-place-date"></small></div><button id="refocus-place" class="secondary-button">Fly to location ${icons.arrow}</button><a id="place-source" target="_blank" rel="noopener">Source record ↗</a></section>
-        <div class="map-list-panel">
+        <div class="map-list-panel" id="place-explorer">
         <label class="map-search"><input id="place-search" type="search" aria-label="Search places" placeholder="Search this world…" autocomplete="off" /></label>
         <section id="place-search-results" hidden aria-label="Search results"><p class="map-section-title" id="search-count"></p><div id="place-results" class="place-list"></div></section>
         <section class="map-visible"><div class="map-section-title"><span id="in-view-count">In view</span><span id="map-level">Global</span></div><p class="map-hint" id="map-hint">Loading place names…</p><div id="visible-places" class="place-list" aria-label="Places labeled in the current view"></div></section>
@@ -218,11 +225,38 @@ let placeCatalog: PlaceCatalog | undefined;
 let mapOpen = true, placesError = '', mapListKey = '';
 let selectedPlace: Place | undefined;
 let mapBody: BodyId | undefined;
+let mapMode: 'places' | 'events' = 'places';
+const eventPanel = new EventPanel({
+  select: selectEvent,
+  clear: () => { observatory?.clearFocus(); mapListKey = ''; },
+  world: body => {
+    const parent = body === 'moon' ? 'moon' : 'mars';
+    if (currentBody !== parent || currentView !== 'detail') navigate('detail', parent);
+    applyMapCatalog();
+  },
+  change: applyMapCatalog,
+});
+const showingEvents = () => mapOpen && mapMode === 'events' && currentBody !== 'earth';
+function applyMapCatalog() {
+  const places = [...(placeCatalog?.places ?? []), ...(showingEvents() ? eventPanel.events.map(eventPlace).filter((place): place is Place => !!place) : [])];
+  observatory?.setPlaceCatalog(places); mapListKey = ''; $('#place-labels').innerHTML = '';
+}
+function selectEvent(event: EventSpot) {
+  const parent = event.body === 'moon' ? 'moon' : 'mars';
+  if (currentView !== 'detail' || currentBody !== parent) navigate('detail', parent);
+  selectedPlace = undefined; $('#selected-place').hidden = true;
+  const place = eventPlace(event);
+  if (place) observatory?.focusPlace(place);
+  else observatory?.clearFocus();
+  mapListKey = ''; $('#map-panel').scrollTop = 0;
+}
 
 function navigate(view: View, body: BodyId = currentBody, history = true) {
   if (!ready) return;
   if (view === 'satellites') satelliteInspectorOpen = true;
   currentView = view; currentBody = body;
+  eventPanel.selected = undefined;
+  eventPanel.context(body, view === 'detail' && mapOpen && showingEvents());
   $('.observatory').dataset.satelliteBody = body;
   observatory!.setView(view, body);
   $('.observatory').dataset.view = view;
@@ -231,13 +265,11 @@ function navigate(view: View, body: BodyId = currentBody, history = true) {
   $('.overview-heading').hidden = view !== 'overview';
   $('.world-picker').hidden = view !== 'overview';
   $('.detail-heading').hidden = view !== 'detail';
-  $('#show-map').hidden = view !== 'detail';
-  $('.observatory').dataset.mapOpen = String(mapOpen);
-  $('#show-map').setAttribute('aria-expanded', String(mapOpen));
-  $('#show-map span').textContent = mapOpen ? 'Hide map' : 'Show map';
-  $('#map-panel').hidden = view !== 'detail' || !mapOpen;
-  $('#place-labels').hidden = view !== 'detail' || !mapOpen;
-  observatory!.setMapEnabled(mapOpen && view === 'detail');
+  if (body === 'earth') mapMode = 'places';
+  $('.map-controls').hidden = view !== 'detail';
+  $('#place-labels').hidden = view !== 'detail';
+  observatory!.setMapEnabled(view === 'detail');
+  updateMapControls();
   if (view === 'detail') {
     if (mapBody !== body) { selectedPlace = undefined; observatory!.surfaceMap.selected = ''; $('#selected-place').hidden = true; $<HTMLInputElement>('#place-search').value = ''; }
     mapBody = body; mapListKey = ''; $('#visible-places').innerHTML = ''; $('#place-labels').innerHTML = '';
@@ -352,7 +384,8 @@ $('#nav-orbits').onclick = () => navigate('orbit');
 $('#detail-orbit').onclick = () => navigate('orbit');
 $('#nav-satellites').onclick = () => navigate('satellites');
 $('#detail-satellites').onclick = () => navigate('satellites');
-$('#show-map').onclick = () => toggleMap(!mapOpen);
+$('#show-map').onclick = () => toggleMap(!(mapOpen && mapMode === 'places'), 'places');
+$('#show-events').onclick = () => toggleMap(!showingEvents(), 'events');
 $('#satellite-back').onclick = () => navigate('detail');
 document.querySelectorAll<HTMLButtonElement>('[data-system]').forEach(button => button.onclick = () => navigate('satellites', button.dataset.system as BodyId));
 document.querySelectorAll<HTMLButtonElement>('[data-world], [data-switch]').forEach(button => button.onclick = () => navigate('detail', (button.dataset.world ?? button.dataset.switch) as BodyId));
@@ -446,7 +479,7 @@ async function start() {
   try {
     observatory?.dispose();
     observatory = new Observatory($('#scene'), clock);
-    if (placeCatalog) observatory.setPlaceCatalog(placeCatalog.places);
+    applyMapCatalog();
     observatory.onMapFrame = renderMapFrame;
     if (satelliteCatalog) observatory.setSatelliteCatalog(satelliteCatalog.satellites);
     observatory.onSatelliteSelect = selectSatellite;
@@ -485,20 +518,32 @@ async function start() {
     $('#error-text').textContent = 'The graphics renderer or a surface map could not load. Try again with hardware acceleration enabled in a browser that supports WebGPU or WebGL 2.';
   }
 }
-function toggleMap(open: boolean) {
-  mapOpen = open;
-  $('.observatory').dataset.mapOpen = String(open);
-  $('#show-map').setAttribute('aria-expanded', String(open));
-  $('#show-map span').textContent = open ? 'Hide map' : 'Show map';
-  $('#map-panel').hidden = !open || currentView !== 'detail';
-  $('#place-labels').hidden = !open || currentView !== 'detail';
-  observatory?.setMapEnabled(open && currentView === 'detail');
+function updateMapControls() {
+  const places = mapOpen && mapMode === 'places', events = showingEvents();
+  $('.observatory').dataset.mapOpen = String(mapOpen);
+  $('#show-map').setAttribute('aria-expanded', String(places));
+  $('#show-map span').textContent = places ? 'Hide map' : 'Show map';
+  $('#show-events').hidden = currentBody === 'earth';
+  $('#show-events').setAttribute('aria-expanded', String(events));
+  $('#show-events span').textContent = events ? 'Hide events' : 'Show events';
+  $('#map-panel').hidden = !mapOpen || currentView !== 'detail';
+  $('#map-panel').setAttribute('aria-label', events ? 'Event spots' : 'Map locations');
+}
+function toggleMap(open: boolean, mode = mapMode) {
+  // These controls change the inspector, never the base place-name layer.
+  mapOpen = open; mapMode = mode;
+  updateMapControls();
   mapListKey = ''; updateMapCatalog();
 }
 function placeRows(places: Place[]) {
   return places.map(p => `<button class="place-row${selectedPlace?.id === p.id ? ' active' : ''}" data-place="${p.id}" aria-label="Focus ${escapeHtml(p.name)}"><span>${escapeHtml(p.name)}<small>${escapeHtml(p.kind)}${p.context && p.body === 'earth' ? ' · ' + escapeHtml(p.context) : ''}</small></span>${icons.diagonal}</button>`).join('');
 }
 function updateMapCatalog() {
+  const events = showingEvents();
+  $('#place-explorer').hidden = events;
+  $('#selected-place').hidden = events || !selectedPlace;
+  eventPanel.context(currentBody, events && mapOpen && currentView === 'detail');
+  applyMapCatalog();
   $('#retry-places').hidden = !placesError;
   if (!placeCatalog) { $('#map-hint').textContent = placesError || 'Loading place names…'; $('#map-hint').hidden = false; }
   updatePlaceSearch();
@@ -517,6 +562,8 @@ function updatePlaceSearch() {
 function selectPlace(id: string) {
   const place = placeCatalog?.places.find(p => p.id === id && p.body === currentBody);
   if (!place) return;
+  eventPanel.selected = undefined;
+  toggleMap(true, 'places');
   selectedPlace = place; mapListKey = '';
   $<HTMLInputElement>('#place-search').value = ''; updatePlaceSearch();
   $('#selected-place').hidden = false;
@@ -532,18 +579,26 @@ function selectPlace(id: string) {
   observatory?.focusPlace(place);
 }
 function renderMapFrame(frame: MapFrame) {
-  if (!mapOpen || currentView !== 'detail') return;
+  if (currentView !== 'detail') return;
   const labels = frame.labels.filter(label => label.visible);
+  const locations = labels.filter(label => !label.place.eventId);
   $('#map-level').textContent = mapLevels[frame.level];
   $('#map-level').dataset.level = String(frame.level);
-  $('#in-view-count').textContent = `In view · ${labels.length}`;
-  $('#map-hint').textContent = !placeCatalog ? placesError || 'Loading place names…' : labels.length ? '' : 'No named places in this view. Zoom out, rotate, or search this world.';
+  $('#in-view-count').textContent = `In view · ${locations.length}`;
+  $('#map-hint').textContent = !placeCatalog ? placesError || 'Loading place names…' : locations.length ? '' : 'No named places in this view. Zoom out, rotate, or search this world.';
   $('#map-hint').hidden = !$('#map-hint').textContent;
-  const key = labels.map(l => l.place.id).join(',') + (selectedPlace?.id ?? '');
+  const key = labels.map(l => l.place.id).join(',') + (selectedPlace?.id ?? '') + (eventPanel.selected?.id ?? '');
   if (key !== mapListKey) {
     mapListKey = key;
-    $('#visible-places').innerHTML = placeRows(labels.map(label => label.place));
-    $('#place-labels').innerHTML = labels.map(label => `<button class="place-label${selectedPlace?.id === label.place.id ? ' active' : ''}" data-place-label="${label.place.id}" aria-label="Focus ${escapeHtml(label.place.name)}"><span>${escapeHtml(label.place.name)}</span></button>`).join('');
+    $('#visible-places').innerHTML = placeRows(locations.map(label => label.place));
+    $('#place-labels').innerHTML = labels.map(label => {
+      const event = label.place.eventId && eventSpots.find(event => event.id === label.place.eventId);
+      if (event) {
+        const type = eventCategories[event.category];
+        return `<button class="place-label event-label${eventPanel.selected?.id === event.id ? ' active' : ''}" data-place-label="${event.id}" data-event-label="${event.id}" aria-label="Explore event ${escapeHtml(event.name)}" style="--event-color:${type.color}"><i aria-hidden="true">${type.symbol}</i><span>${escapeHtml(label.place.name)}${event.location?.precision === 'region' ? ' · Region' : ''}</span></button>`;
+      }
+      return `<button class="place-label${selectedPlace?.id === label.place.id ? ' active' : ''}" data-place-label="${label.place.id}" aria-label="Focus ${escapeHtml(label.place.name)}"><span>${escapeHtml(label.place.name)}</span></button>`;
+    }).join('');
   }
   for (const label of labels) {
     const element = document.querySelector<HTMLElement>(`[data-place-label="${label.place.id}"]`);
@@ -554,10 +609,7 @@ $('#close-place-detail').onclick = () => {
   selectedPlace = undefined; mapListKey = '';
   $('#selected-place').hidden = true;
   delete $('#selected-place').dataset.placeId;
-  if (observatory) {
-    observatory.surfaceMap.selected = '';
-    observatory.surfaceMap.invalidate();
-  }
+  observatory?.clearFocus();
   updatePlaceSearch();
   $('#map-panel').scrollTop = 0;
   $('#place-search').focus({ preventScroll: true });
@@ -570,12 +622,12 @@ $('#map-panel').onclick = event => {
 };
 $('#place-labels').onclick = event => {
   const button = (event.target as HTMLElement).closest<HTMLElement>('[data-place-label]');
-  if (button) selectPlace(button.dataset.placeLabel!);
+  if (button) { if (button.dataset.eventLabel) eventPanel.select(button.dataset.eventLabel); else selectPlace(button.dataset.placeLabel!); }
 };
 async function fetchPlaceData() {
   placesError = ''; $('#retry-places').hidden = true;
   try {
-    placeCatalog = await loadPlaces(); observatory?.setPlaceCatalog(placeCatalog.places);
+    placeCatalog = await loadPlaces(); applyMapCatalog();
   } catch (error) { console.warn('Place data unavailable', error); placesError = 'Place names could not load. Try again.'; }
   mapListKey = ''; if (currentView === 'detail') updateMapCatalog();
 }
@@ -585,6 +637,7 @@ void fetchPlaceData();
 function selectSatellite(id: string) {
   satelliteInspectorOpen = true;
   observatory?.selectSatellite(id);
+  updateAppearanceControls();
   renderSatelliteSelection();
   updateSatelliteReadout(clock.now());
   if (matchMedia('(max-width: 760px)').matches) $('#satellite-inspector').scrollIntoView({ block: 'start' });
@@ -615,11 +668,13 @@ function updateSatelliteModel(selected: Satellite | undefined) {
   if($('#satellite-model-canvas').dataset.modelState==='ready'&&$('#satellite-model-canvas').dataset.modelId===selected.id) { $('#expand-satellite-model').hidden=false; $('#satellite-model-status').hidden=true; }
 }
 $('#close-satellite-inspector').onclick = () => {
+  const selectedRow = document.querySelector<HTMLElement>('.satellite-row.active');
   satelliteInspectorOpen = false;
+  observatory?.clearFocus();
+  renderSatelliteSelection();
   $('#satellite-inspector').hidden = true;
   modelPreview?.setActive(false);
   $<HTMLDialogElement>('#satellite-model-dialog').close();
-  const selectedRow = document.querySelector<HTMLElement>('.satellite-row.active');
   (selectedRow ?? $('#nav-satellites')).focus({ preventScroll: !matchMedia('(max-width: 760px)').matches });
 };
 $('#expand-satellite-model').onclick=()=> {
@@ -745,4 +800,4 @@ void fetchSatelliteData();
 $('#retry').onclick = () => { void start(); };
 const ticker = setInterval(updateReadouts, 250);
 updateReadouts(); void start();
-if (import.meta.hot) import.meta.hot.dispose(() => { clearInterval(ticker); satelliteMobileLayout.removeEventListener('change', arrangeSatelliteInspector); window.removeEventListener('popstate', readHash); window.removeEventListener('keydown', onKeyDown); modelPreview?.dispose(); observatory?.dispose(); disposeSatelliteModels(); });
+if (import.meta.hot) import.meta.hot.dispose(() => { clearInterval(ticker); satelliteMobileLayout.removeEventListener('change', arrangeSatelliteInspector); window.removeEventListener('popstate', readHash); window.removeEventListener('keydown', onKeyDown); modelPreview?.dispose(); eventPanel.dispose(); observatory?.dispose(); disposeSatelliteModels(); });

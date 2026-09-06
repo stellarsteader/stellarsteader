@@ -5,6 +5,7 @@ export type Place = {
   id: string; body: BodyId; name: string; kind: string; context: string;
   latitude: number; longitude: number; diameterKm?: number;
   level: number; importance: number; sourceUrl: string;
+  eventId?: string;
 };
 export type PlaceCatalog = { schemaVersion: number; places: Place[]; sources: { body: BodyId; credit: string; url: string; downloadedAt: string }[] };
 export type PlaceLabel = { place: Place; x: number; y: number; visible: boolean };
@@ -34,7 +35,7 @@ export class SurfaceMap {
   enabled = false;
   selected = '';
   private entries: { place: Place; point: Vector3 }[] = [];
-  private shown: { place: Place; point: Vector3 }[] = [];
+  private shown: { place: Place; point: Vector3; offsetY: number }[] = [];
   private lastSelection = -Infinity;
   private matrix = new Matrix4();
   private localCamera = new Vector3();
@@ -68,19 +69,33 @@ export class SurfaceMap {
     };
     if (performance.now() - this.lastSelection > 130) {
       this.lastSelection = performance.now();
-      const candidates = this.entries.filter(entry => (entry.place.level <= level && (entry.place.body === 'earth' || entry.place.level >= level - 1)) || entry.place.id === this.selected)
+      const candidates = this.entries.filter(entry => entry.place.eventId || (entry.place.level <= level && (entry.place.body === 'earth' || entry.place.level >= level - 1)) || entry.place.id === this.selected)
         .map(entry => ({ entry, rect: project(entry) })).filter(({ rect }) => rect.visible)
-        .sort((a, b) => Number(b.entry.place.id === this.selected) - Number(a.entry.place.id === this.selected)
+        .sort((a, b) => Number(!!a.entry.place.eventId) - Number(!!b.entry.place.eventId)
+          || Number(b.entry.place.id === this.selected) - Number(a.entry.place.id === this.selected)
           || displayImportance(b.entry.place) - displayImportance(a.entry.place) || a.entry.place.id.localeCompare(b.entry.place.id));
       const rectangles: LabelRect[] = [];
       this.shown = [];
+      let places = 0, events = 0;
       for (const { entry, rect } of candidates) {
-        if (rectangles.some(other => overlaps(rect, other))) continue;
-        rectangles.push(rect); this.shown.push(entry);
-        if (this.shown.length >= (mobile ? 7 : 16)) break;
+        const event = !!entry.place.eventId;
+        // Base names keep their own priority and budget. Events can add labels,
+        // but cannot evict a name when the event inspector opens.
+        if (event ? events >= (mobile ? 4 : 8) : places >= (mobile ? 7 : 16)) continue;
+        const offsetY = (event ? [0, 36, -36] : [0]).find(offset => {
+          const candidate = { ...rect, y: rect.y + offset };
+          return candidate.y > top && candidate.y < bottom && !rectangles.some(other => overlaps(candidate, other));
+        });
+        if (offsetY === undefined) continue;
+        rectangles.push({ ...rect, y: rect.y + offsetY });
+        this.shown.push({ ...entry, offsetY });
+        if (event) events++; else places++;
       }
     }
-    return { level, altitudeKm: altitudeRatio * radiusKm, labels: this.shown.map(entry => ({ place: entry.place, ...project(entry) })) };
+    return { level, altitudeKm: altitudeRatio * radiusKm, labels: this.shown.map(entry => {
+      const projected = project(entry);
+      return { place: entry.place, ...projected, y: projected.y + entry.offsetY };
+    }) };
   }
 }
 

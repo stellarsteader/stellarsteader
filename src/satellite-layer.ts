@@ -50,9 +50,11 @@ export class SatelliteLayer {
   }
 
   select(id: string) {
-    if (this.body === 'earth') { this.earth?.select(id); return; }
-    if (this.entries.has(id)) { this.selected = id; this.pathEpoch = NaN; }
+    if (this.body === 'earth') this.earth?.select(id);
+    else if (this.entries.has(id)) { this.selected = id; this.pathEpoch = NaN; }
+    this.appearance.select(this.selected);
   }
+  clearSelection() { this.selected = ''; this.appearance.select(''); this.pathEpoch = NaN; }
   setEarthFilter(filter: OrbitFilter) { this.earth?.applyFilter(filter); }
 
   update(date: Date, presentation: THREE.Quaternion, rate = 1, camera?: THREE.Camera, height = 900) {
@@ -81,6 +83,15 @@ export class SatelliteLayer {
         line.setPoints(points);
       }
     });
+  }
+
+  selectedWorldPosition(target = new THREE.Vector3()) {
+    // Follow the actual displayed position, including Earth's worker interpolation
+    // and the selected model's ephemeris, rather than a second approximate sample.
+    if (this.appearance.root.visible) return this.appearance.root.getWorldPosition(target);
+    if (this.body === 'earth') return this.earth?.selectedWorldPosition(target) ?? null;
+    const marker = this.entries.get(this.selected)?.marker;
+    return marker?.visible ? marker.getWorldPosition(target) : null;
   }
 
   extent(date: Date, filtered = false) {

@@ -2,6 +2,7 @@ import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { planetMaterials, type PlanetTextures } from './materials';
 import { PlanetTerrain } from './terrain';
+import { followCameraFocus, rotateAroundSurfaceFocus, updateReleasedCamera } from './camera-focus';
 import { loadSurfaceTexture } from './surface-texture';
 import { bodies, physicalState, orbitPosition, type BodyId, type SceneClock } from './astronomy';
 import { OrbitLine } from './orbit-line';
@@ -42,7 +43,10 @@ export class Observatory {
   readonly surfaceMap = new SurfaceMap();
   placeCatalog: Place[] = [];
   onMapFrame?: (frame: MapFrame) => void;
-  private placeFlight?: { start: number; direction: THREE.Vector3; rotation: THREE.Quaternion; center: THREE.Vector3; fromDistance: number; toDistance: number };
+  private focus?: { kind: 'place'; place: Place; acquired: boolean } | { kind: 'satellite'; id: string; acquired: boolean };
+  private focusPoint = new THREE.Vector3();
+  private freeLook = false;
+  private placeFlight?: { fromTarget: THREE.Vector3; start: number; direction: THREE.Vector3; rotation: THREE.Quaternion; center: THREE.Vector3; fromDistance: number; toDistance: number };
   readonly satellites = new SatelliteLayer();
   satelliteCatalog: Satellite[] = [];
   onSatelliteLabels?: (labels: { id: string; x: number; y: number; visible: boolean }[]) => void;
@@ -102,6 +106,10 @@ export class Observatory {
     this.renderer.domElement.setAttribute('aria-label', 'Interactive Earth, Moon and Mars. Select a world using the buttons, or drag to explore a selected world.');
     this.host.appendChild(this.renderer.domElement);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    const updateControls = this.controls.update.bind(this.controls);
+    this.controls.update = delta => this.freeLook
+      ? updateReleasedCamera(this.camera, this.controls.target, this.planets.get(this.selected)!.root.position, () => updateControls(delta))
+      : updateControls(delta);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.06;
     this.controls.enablePan = false;
@@ -265,14 +273,20 @@ export class Observatory {
     this.renderer.setSize(width, height);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+    const previousCenter = (this.focus || this.freeLook) && this.planets.get(this.selected)?.root.position.clone();
     this.layout();
-    if (this.planets.size) this.setView(this.view, this.selected, false);
+    if (previousCenter) {
+      const shift = this.planets.get(this.selected)!.root.position.clone().sub(previousCenter);
+      this.camera.position.add(shift); this.controls.target.add(shift);
+      if (this.placeFlight) { this.placeFlight.center.add(shift); this.placeFlight.fromTarget.add(shift); }
+    }
+    if (this.planets.size && !this.focus && !this.freeLook) this.setView(this.view, this.selected, false);
   }
 
   setView(view: View, selected: BodyId = this.selected, animate = true, filteredSatellites = false) {
     const previous = this.view;
     const previousBody = this.selected;
-    this.placeFlight = undefined;
+    this.placeFlight = undefined; this.focus = undefined; this.freeLook = false; this.camera.up.set(0, 1, 0);
     this.view = view; this.selected = selected; this.followDawn = false;
     this.controls.autoRotate = false;
     this.controls.enabled = view !== 'overview';
@@ -339,7 +353,11 @@ export class Observatory {
     this.transition = undefined; this.followDawn = false;
     this.resumeRotationAt = performance.now() + 4500;
     this.surfaceMap.selected = place.id; this.surfaceMap.invalidate();
-    this.placeFlight = { start: performance.now(), center: planet.root.position.clone(), direction: from.clone().normalize(),
+    this.focus = { kind: 'place', place, acquired: false };
+    this.freeLook = false;
+    this.camera.clearViewOffset(); this.camera.updateProjectionMatrix();
+    this.controls.minDistance = planet.size * (this.selected === 'earth' ? .08 : .012);
+    this.placeFlight = { fromTarget: this.controls.target.clone(), start: performance.now(), center: planet.root.position.clone(), direction: from.clone().normalize(),
       rotation: new THREE.Quaternion().setFromUnitVectors(from.clone().normalize(), direction), fromDistance: from.length(), toDistance: planet.size * ratio };
     this.host.dataset.camera = 'moving';
   }
@@ -347,13 +365,70 @@ export class Observatory {
   setSatelliteCatalog(catalog: Satellite[]) {
     this.satelliteCatalog = catalog;
     if (this.view === 'satellites') {
+      const selected = this.satellites.selected;
       this.satellites.setBody(this.selected, catalog, this.planets.get(this.selected)!.root);
-      this.setView(this.view, this.selected, false);
+      if (selected) this.satellites.select(selected);
+      else this.satellites.clearSelection();
     }
   }
   selectSatellite(id: string) {
     this.satellites.select(id);
-    if (this.view === 'satellites') this.setView(this.view, this.selected, false);
+    if (this.view !== 'satellites' || this.satellites.selected !== id) return;
+    this.transition = undefined; this.placeFlight = undefined; this.followDawn = false;
+    this.setRotationEnabled(false);
+    this.focus = { kind: 'satellite', id, acquired: false };
+    this.freeLook = false;
+    this.camera.clearViewOffset(); this.camera.updateProjectionMatrix();
+    this.host.dataset.camera = 'settled';
+    this.updateFocus();
+  }
+
+  clearFocus() {
+    if (this.focus) {
+      this.focus = undefined;
+      this.placeFlight = undefined; this.transition = undefined;
+      // Retain the complete current framing, including a partially completed
+      // flight. Releasing a selection must not reposition or re-aim the camera.
+      const position = this.camera.position.clone(), orientation = this.camera.quaternion.clone();
+      const damping = this.controls.enableDamping;
+      this.controls.autoRotate = false; this.controls.enableDamping = false; this.controls.update(0);
+      this.controls.enableDamping = damping;
+      this.camera.position.copy(position); this.camera.quaternion.copy(orientation);
+      this.freeLook = true;
+      this.host.dataset.camera = 'settled';
+    }
+    this.surfaceMap.selected = ''; this.surfaceMap.invalidate();
+    if (this.view === 'satellites') this.satellites.clearSelection();
+  }
+
+  private placeWorldPosition(place: Place, target: THREE.Vector3) {
+    const planet = this.planets.get(place.body)!;
+    const height = planet.materials.relief.value > 0 ? this.terrains.get(place.body)?.field?.height((place.longitude + 180) / 360, (90 - place.latitude) / 180) ?? 0 : 0;
+    return planet.surface.localToWorld(target.copy(surfacePoint(place.latitude, place.longitude)).multiplyScalar(1 + height / (bodies[place.body].radius * 1000)));
+  }
+
+  private updateFocus() {
+    const focus = this.focus;
+    if (!focus || this.placeFlight) return;
+    if (focus.kind === 'satellite' && this.satellites.selected !== focus.id) { this.focus = undefined; return; }
+    const point = focus.kind === 'place' ? this.placeWorldPosition(focus.place, this.focusPoint) : this.satellites.selectedWorldPosition(this.focusPoint);
+    // Missing/out-of-epoch samples must never aim the camera at an invented position.
+    if (!point) return;
+    if (!focus.acquired) {
+      // Flush old damping before changing pivots, then restore the exact camera
+      // position. The old planet-centered minDistance must not force a zoom-out.
+      const position = this.camera.position.clone(), damping = this.controls.enableDamping;
+      this.controls.autoRotate = false; this.controls.enableDamping = false; this.controls.update(0);
+      this.controls.enableDamping = damping; this.camera.position.copy(position);
+      this.controls.target.copy(point);
+      const distance = position.distanceTo(point);
+      this.controls.minDistance = Math.min(this.planets.get(this.selected)!.size * (focus.kind === 'place' && this.selected === 'earth' ? .08 : .012), distance * .1);
+      this.controls.maxDistance = Math.max(this.controls.maxDistance, distance * 2);
+      focus.acquired = true;
+    } else {
+      followCameraFocus(this.camera, this.controls.target, point, this.planets.get(this.selected)!.root.position);
+    }
+    this.camera.lookAt(this.controls.target);
   }
 
   private setupOrbit() {
@@ -409,8 +484,13 @@ export class Observatory {
     this.placeFlight = undefined;
     this.resumeRotationAt = performance.now() + 2500;
     this.host.dataset.camera = 'settled';
+    if (this.freeLook) {
+      if (direction > 0) this.controls.dollyIn(.82);
+      else this.controls.dollyOut(1 / 1.22);
+      return;
+    }
     const offset = this.camera.position.clone().sub(this.controls.target);
-    if (this.view === 'detail' && this.selected !== 'earth') {
+    if (this.view === 'detail' && this.selected !== 'earth' && !this.focus && !this.freeLook) {
       const radius = this.planets.get(this.selected)!.size;
       offset.setLength(radius + (offset.length() - radius) * (direction > 0 ? 0.72 : 1.4));
     } else offset.multiplyScalar(direction > 0 ? 0.82 : 1.22);
@@ -419,6 +499,7 @@ export class Observatory {
   }
   followSunrise() {
     if (this.view !== 'detail') return;
+    this.focus = undefined; this.freeLook = false; this.camera.up.set(0, 1, 0);
     this.placeFlight = undefined;
     const p = this.planets.get(this.selected)!;
     const north = new THREE.Vector3(0, 1, 0).applyQuaternion(p.surface.quaternion);
@@ -498,15 +579,40 @@ export class Observatory {
       const t = reducedMotion ? 1 : Math.min(1, (now - flight.start) / 1050), eased = t * t * (3 - 2 * t);
       const direction = flight.direction.clone().applyQuaternion(new THREE.Quaternion().slerp(flight.rotation, eased));
       this.camera.position.copy(flight.center).addScaledVector(direction, THREE.MathUtils.lerp(flight.fromDistance, flight.toDistance, eased));
-      this.controls.target.copy(flight.center); this.camera.lookAt(flight.center);
+      const target = this.focus?.kind === 'place' ? this.placeWorldPosition(this.focus.place, this.focusPoint) : flight.center;
+      this.controls.target.lerpVectors(flight.fromTarget, target, eased); this.camera.lookAt(this.controls.target);
       if (t === 1) { this.placeFlight = undefined; this.host.dataset.camera = 'settled'; }
     }
+    if (this.view === 'satellites') this.satellites.update(this.clock.now(), this.planets.get(this.selected)!.presentation, this.clock.rate, this.camera, this.host.clientHeight);
+    this.updateFocus();
     this.controls.rotateSpeed = this.view === 'detail'
-      ? surfaceDragSpeed(this.camera.position.distanceTo(this.controls.target) / this.planets.get(this.selected)!.size)
+      ? surfaceDragSpeed(this.camera.position.distanceTo(this.planets.get(this.selected)!.root.position) / this.planets.get(this.selected)!.size)
       : 0.45;
-    this.controls.autoRotate = rotating && (this.view === 'detail' || this.view === 'satellites');
+    const surfaceFocus = this.focus?.kind === 'place' && this.focus.acquired;
+    this.controls.autoRotate = rotating && !surfaceFocus && !this.freeLook && (this.view === 'detail' || this.view === 'satellites');
+    if (rotating && surfaceFocus) {
+      const normal = this.controls.target.clone().sub(this.planets.get(this.selected)!.root.position).normalize();
+      rotateAroundSurfaceFocus(this.camera, this.controls.target, normal, -delta * Math.PI / 180);
+    }
+    if (rotating && this.freeLook) {
+      // A released view rotates around the world, carrying its free camera
+      // target with it. The old selected location is no longer held centered.
+      const center = this.planets.get(this.selected)!.root.position;
+      const turn = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -delta * Math.PI / 180);
+      this.camera.position.sub(center).applyQuaternion(turn).add(center);
+      this.controls.target.sub(center).applyQuaternion(turn).add(center);
+      this.camera.up.applyQuaternion(turn); this.camera.lookAt(this.controls.target);
+    }
     this.controls.autoRotateSpeed = (1 / 6) * (this.view === 'detail' ? this.controls.rotateSpeed / 0.45 : 1);
     this.controls.update(delta);
+    if (surfaceFocus || (this.freeLook && this.view === 'detail')) {
+      const planet = this.planets.get(this.selected)!, offset = this.camera.position.clone().sub(planet.root.position);
+      const minimum = planet.size * (this.selected === 'earth' ? 1.08 : 1.012);
+      if (offset.length() < minimum) {
+        this.camera.position.copy(planet.root.position).add(offset.setLength(minimum));
+        this.camera.lookAt(this.controls.target);
+      }
+    }
     const terrainView = this.view === 'detail' && this.selected !== 'earth';
     if (terrainView) {
       const planet = this.planets.get(this.selected)!;
@@ -514,7 +620,13 @@ export class Observatory {
       this.camera.near = Math.max(0.0002, Math.min(0.05, altitude * 0.08));
       this.camera.updateProjectionMatrix();
       this.controls.zoomSpeed = Math.max(0.08, Math.min(0.6, altitude / planet.size));
-    } else this.controls.zoomSpeed = 0.6;
+    } else {
+      this.controls.zoomSpeed = 0.6;
+      if (this.focus?.kind === 'satellite' && this.focus.acquired) {
+        const near = Math.max(.00001, Math.min(.05, this.camera.position.distanceTo(this.controls.target) * .05));
+        if (near !== this.camera.near) { this.camera.near = near; this.camera.updateProjectionMatrix(); }
+      }
+    }
     this.scene.updateMatrixWorld(true);
     // Share the upload allowance across both worlds during the Home transition.
     let terrainUploads = 4;
@@ -524,7 +636,6 @@ export class Observatory {
       terrainUploads -= terrain.stats.uploadedPatches - before;
     });
     this.host.dataset.terrain = terrainView ? this.terrains.get(this.selected)!.status : 'inactive';
-    if (this.view === 'satellites') this.satellites.update(this.clock.now(), this.planets.get(this.selected)!.presentation, this.clock.rate, this.camera, this.host.clientHeight);
     if (this.view === 'orbit') this.orbitStars.position.copy(this.camera.position);
     this.renderer.render(this.view === 'orbit' ? this.orbitScene : this.scene, this.camera);
     if (this.view === 'detail' && this.surfaceMap.enabled) this.onMapFrame?.(this.surfaceMap.update(this.planets.get(this.selected)!.surface, this.camera, this.host.clientWidth, this.host.clientHeight, bodies[this.selected].radius, (this.planets.get(this.selected)!.materials.relief.value > 0 && this.terrains.get(this.selected)?.field) ? ((lat, lon) => this.terrains.get(this.selected)!.field!.height((lon + 180) / 360, (90 - lat) / 180)) : undefined));

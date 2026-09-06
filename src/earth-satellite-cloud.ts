@@ -116,6 +116,11 @@ export class EarthSatelliteCloud {
     if (this.filter==='all') return 1.6;
     return Math.max(1.3, Math.min(70,radii[Math.floor(radii.length*0.98)] ?? 1.6));
   }
+  selectedWorldPosition(target = new THREE.Vector3()) {
+    const index = this.items.findIndex(s => s.id === this.selected);
+    if (index < 0 || !this.shown[index]) return null;
+    return this.root.localToWorld(target.fromArray(this.positions, index * 3));
+  }
   labels(camera: THREE.Camera,width: number,height: number) {
     const index=this.items.findIndex(s=>s.id===this.selected);
     if(index<0) return [];

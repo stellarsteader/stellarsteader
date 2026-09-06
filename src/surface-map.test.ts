@@ -80,3 +80,26 @@ test('Close surface navigation slows progressively without stalling', () => {
   assert.ok(speeds.at(-1)! < speeds[0] / 20);
   assert.ok(surfaceDragSpeed(1) > 0);
 });
+
+
+test('Event labels are additive and never evict existing place names', () => {
+  const surface = new Object3D(); surface.updateMatrixWorld(true);
+  for (const [width, height] of [[1440, 900], [390, 354]]) {
+    const camera = new PerspectiveCamera(35, width / height, 0.01, 1000);
+    camera.position.set(0, 0, 5); camera.lookAt(0, 0, 0); camera.updateMatrixWorld(true);
+    const map = new SurfaceMap();
+    const locations = [place('site', -90), place('nearby', -125)];
+    const names = () => map.update(surface, camera, width, height, 3389.5).labels.filter(l => !l.place.eventId).map(l => l.place.id);
+    map.setPlaces(locations);
+    const original = names();
+    assert.ok(original.includes('site'));
+    const event = { ...place('event', -90), eventId: 'event', importance: 100, level: 3 };
+    map.setPlaces([...locations, event]);
+    assert.deepEqual(names(), original);
+    assert.ok(map.update(surface, camera, width, height, 3389.5).labels.some(l => l.place.eventId === 'event'));
+    map.selected = event.id; map.invalidate();
+    assert.deepEqual(names(), original);
+    map.setPlaces(locations);
+    assert.deepEqual(names(), original);
+  }
+});
